@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"problem1/configs"
 	"strconv"
@@ -28,9 +27,10 @@ func main() {
 
 	e.GET("/get_friend_list", func(c echo.Context) error {
 		id := c.QueryParam("id")
-		fmt.Printf("%d\n", id)
-		// id を使って，DB から友達リストを取得する
-		friendList := []string{"friend1", "friend2", "friend3"}
+		friendList, err := getFriendList(db, id)
+		if err != nil {
+			return err
+		}
 		return c.JSON(http.StatusOK, friendList)
 	})
 
@@ -45,4 +45,35 @@ func main() {
 	})
 
 	e.Logger.Fatal(e.Start(":" + strconv.Itoa(conf.Server.Port)))
+}
+
+func getFriendList(db *sql.DB, id string) []string, error {
+	rows, err := db.Query("SELECT user2_id FROM friend_link WHERE user1_id = ?", id)
+	if err != nil {
+		panic(err)
+	}
+
+	var friendIdList []string
+	for rows.Next() {
+		var friendId string
+		if err := rows.Scan(&friendId); err != nil {
+			return nil, err
+		}
+		friendIdList = append(friendIdList, friendId)
+	}
+	var friendList []string
+	for _, friendID := range friendIdList {
+		rows, err := db.Query("SELECT name FROM users WHERE user_id = ?", friendID)
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var friend string
+			if err := rows.Scan(&friend); err != nil {
+				return nil, err
+			}
+			friendList = append(friendList, friend)
+		}
+	}
+	return friendList, nil
 }
