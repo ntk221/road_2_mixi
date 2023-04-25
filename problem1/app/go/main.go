@@ -35,8 +35,12 @@ func main() {
 	})
 
 	e.GET("/get_friend_of_friend_list", func(c echo.Context) error {
-
-		return nil
+		id := c.QueryParam("id")
+		friendOfFriendList, err := getFriendOfFriendList(db, id)
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, friendOfFriendList)
 	})
 
 	e.GET("/get_friend_of_friend_list_paging", func(c echo.Context) error {
@@ -47,7 +51,7 @@ func main() {
 	e.Logger.Fatal(e.Start(":" + strconv.Itoa(conf.Server.Port)))
 }
 
-func getFriendList(db *sql.DB, id string) []string, error {
+func getFriendList(db *sql.DB, id string) ([]string, error) {
 	rows, err := db.Query("SELECT user2_id FROM friend_link WHERE user1_id = ?", id)
 	if err != nil {
 		panic(err)
@@ -67,13 +71,17 @@ func getFriendList(db *sql.DB, id string) []string, error {
 		if err != nil {
 			return nil, err
 		}
-		for rows.Next() {
-			var friend string
-			if err := rows.Scan(&friend); err != nil {
-				return nil, err
-			}
-			friendList = append(friendList, friend)
+		var friend string
+		rows.Next()
+		if err := rows.Scan(&friend); err != nil {
+			return nil, err
 		}
+		friendList = append(friendList, friend)
 	}
 	return friendList, nil
+}
+
+func getFriendOfFriendList(db *sql.DB, id string) ([]string, error) {
+	// FIXME
+	return nil, nil
 }
