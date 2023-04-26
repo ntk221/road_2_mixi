@@ -1,4 +1,4 @@
-.phony: up down ps 
+.phony: up down ps logs
 
 up:
 	docker-compose up -d
@@ -8,5 +8,8 @@ down:
 
 ps:
 	docker ps
+
+logs:
+	docker-compose logs
 
 re: down up

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"problem1/configs"
+	"problem1/dao"
 	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -27,46 +28,103 @@ func main() {
 
 	e.GET("/get_friend_list", func(c echo.Context) error {
 		id := c.QueryParam("id")
-		friendIdList, err := getFriendIdList(db, id)
+		FriendDAO := dao.NewSQLFriendDAO(db)
+		friendIdList, err := FriendDAO.GetFriendIdList(id)
 		if err != nil {
 			return err
 		} else if friendIdList == nil {
 			return c.JSON(http.StatusOK, "no friends")
 		}
-		friendList, err := getFriendList(db, friendIdList)
+
+		friendList, err := FriendDAO.GetFriends(friendIdList)
 		if err != nil {
 			return err
 		} else if friendList == nil {
 			return c.JSON(http.StatusOK, "no friends")
+		} else {
+			var ret []string
+			for friend, _ := range friendList {
+				ret = append(ret, friend.Name)
+			}
+			return c.JSON(http.StatusOK, ret)
 		}
-		ret := make([]string, 0, len(friendList))
-		for friend := range friendList {
-			ret = append(ret, friend)
-		}
-		return c.JSON(http.StatusOK, ret)
 	})
 
 	e.GET("/get_friend_of_friend_list", func(c echo.Context) error {
 		id := c.QueryParam("id")
-		friendIdList, err := getFriendIdList(db, id)
+		FriendDAO := dao.NewSQLFriendDAO(db)
+		friendIdList, err := FriendDAO.GetFriendIdList(id)
 		if err != nil {
 			return err
 		} else if friendIdList == nil {
 			return c.JSON(http.StatusOK, "no friends")
+		} else {
+			blockedIdList, err := FriendDAO.GetBlockedUsers(id)
+			if err != nil {
+				return err
+			} else if blockedIdList == nil {
+				return c.JSON(http.StatusOK, "no friends")
+			} else {
+				friendList, err := FriendDAO.GetFriendsOfFriends(friendIdList, blockedIdList)
+				if err != nil {
+					return err
+				} else if friendList == nil {
+					return c.JSON(http.StatusOK, "no friends")
+				} else {
+					var ret []string
+					for friend, _ := range friendList {
+						ret = append(ret, friend.Name)
+					}
+					return c.JSON(http.StatusOK, ret)
+				}
+			}
 		}
-		friendsOfFriends, err := getFriendsOfFriends(db, friendIdList)
-		if err != nil {
-			return err
-		} else if friendsOfFriends == nil {
-			return c.JSON(http.StatusOK, "no friends of friends")
-		}
-
-		var ret []string
-		for friend := range friendsOfFriends {
-			ret = append(ret, friend)
-		}
-		return c.JSON(http.StatusOK, ret)
 	})
+
+	/*
+		e.GET("/get_friend_list", func(c echo.Context) error {
+			id := c.QueryParam("id")
+			friendIdList, err := getFriendIdList(db, id)
+			if err != nil {
+				return err
+			} else if friendIdList == nil {
+				return c.JSON(http.StatusOK, "no friends")
+			}
+			friendList, err := getFriendList(db, friendIdList)
+			if err != nil {
+				return err
+			} else if friendList == nil {
+				return c.JSON(http.StatusOK, "no friends")
+			}
+			ret := make([]string, 0, len(friendList))
+			for friend := range friendList {
+				ret = append(ret, friend)
+			}
+			return c.JSON(http.StatusOK, ret)
+		})
+
+		e.GET("/get_friend_of_friend_list", func(c echo.Context) error {
+			id := c.QueryParam("id")
+			friendIdList, err := getFriendIdList(db, id)
+			if err != nil {
+				return err
+			} else if friendIdList == nil {
+				return c.JSON(http.StatusOK, "no friends")
+			}
+			friendsOfFriends, err := getFriendsOfFriends(db, friendIdList)
+			if err != nil {
+				return err
+			} else if friendsOfFriends == nil {
+				return c.JSON(http.StatusOK, "no friends of friends")
+			}
+
+			var ret []string
+			for friend := range friendsOfFriends {
+				ret = append(ret, friend)
+			}
+			return c.JSON(http.StatusOK, ret)
+		})
+	*/
 
 	e.GET("/get_friend_of_friend_list_paging", func(c echo.Context) error {
 		// FIXME
@@ -76,6 +134,7 @@ func main() {
 	e.Logger.Fatal(e.Start(":" + strconv.Itoa(conf.Server.Port)))
 }
 
+/*
 // 現在は，ビジネスロジック層とデータアクセス層が混在しているが，
 // 本来は，データアクセス層はビジネスロジック層に対して，データを返すだけの役割を持つべきである．
 
@@ -110,6 +169,7 @@ func getFriendsOfFriends(db *sql.DB, friendIdList []string) (map[string]bool, er
 	}
 	return friendsOfFriends, nil
 }
+
 
 // (ブロック関係を除いた)友達のリストを取得する
 func getFriendList(db *sql.DB, friendIdList []string) (map[string]bool, error) {
@@ -186,3 +246,4 @@ func getBlockedIdList(db *sql.DB, id string) (map[string]bool, error) {
 	}
 	return l, nil
 }
+*/
