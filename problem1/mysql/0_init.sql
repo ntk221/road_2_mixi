@@ -2,7 +2,8 @@ CREATE TABLE `users` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
   `name` varchar(64) DEFAULT '' NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  CONSTRAINT unique_user_id UNIQUE (user_id)
 );
 -- user1 user2
 CREATE TABLE `friend_link` (
