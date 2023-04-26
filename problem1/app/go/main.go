@@ -76,6 +76,9 @@ func main() {
 	e.Logger.Fatal(e.Start(":" + strconv.Itoa(conf.Server.Port)))
 }
 
+// 現在は，ビジネスロジック層とデータアクセス層が混在しているが，
+// 本来は，データアクセス層はビジネスロジック層に対して，データを返すだけの役割を持つべきである．
+
 // 友達リストからリストの各要素について，その友達リストを取得する
 func getFriendsOfFriends(db *sql.DB, friendIdList []string) (map[string]bool, error) {
 	if len(friendIdList) == 0 {
@@ -108,6 +111,26 @@ func getFriendsOfFriends(db *sql.DB, friendIdList []string) (map[string]bool, er
 	return friendsOfFriends, nil
 }
 
+// (ブロック関係を除いた)友達のリストを取得する
+func getFriendList(db *sql.DB, friendIdList []string) (map[string]bool, error) {
+	friendList := make(map[string]bool)
+	for _, friendId := range friendIdList {
+		var friend string
+		rows, err := db.Query("SELECT name FROM users WHERE user_id = ?", friendId)
+		if err != nil {
+			return nil, err
+		}
+		rows.Next()
+		if err := rows.Scan(&friend); err != nil {
+			return nil, err
+		}
+		friendList[friend] = true
+	}
+
+	return friendList, nil
+}
+
+// (ブロック関係を除いた)友達のIDリストを取得する
 func getFriendIdList(db *sql.DB, id string) ([]string, error) {
 	query := `
 		SELECT user2_id FROM friend_link WHERE user1_id = ?
@@ -139,24 +162,7 @@ func getFriendIdList(db *sql.DB, id string) ([]string, error) {
 	return friendIdList, nil
 }
 
-func getFriendList(db *sql.DB, friendIdList []string) (map[string]bool, error) {
-	friendList := make(map[string]bool)
-	for _, friendId := range friendIdList {
-		var friend string
-		rows, err := db.Query("SELECT name FROM users WHERE user_id = ?", friendId)
-		if err != nil {
-			return nil, err
-		}
-		rows.Next()
-		if err := rows.Scan(&friend); err != nil {
-			return nil, err
-		}
-		friendList[friend] = true
-	}
-
-	return friendList, nil
-}
-
+// ブロック関係にあるユーザのIDリストを取得する
 func getBlockedIdList(db *sql.DB, id string) (map[string]bool, error) {
 	query := `
 		SELECT user2_id FROM block_list WHERE user1_id = ?
