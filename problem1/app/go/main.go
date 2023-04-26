@@ -48,7 +48,12 @@ func main() {
 		if err != nil {
 			return err
 		}
-		return c.JSON(http.StatusOK, friendsOfFriends)
+
+		var ret []string
+		for friend := range friendsOfFriends {
+			ret = append(ret, friend)
+		}
+		return c.JSON(http.StatusOK, ret)
 	})
 
 	e.GET("/get_friend_of_friend_list_paging", func(c echo.Context) error {
@@ -78,8 +83,8 @@ func getFriendList(db *sql.DB, friendIdList []string) ([]string, error) {
 }
 
 // 友達リストからリストの各要素について，その友達リストを取得する
-func getFriendsOfFriends(db *sql.DB, friendIdList []string) ([]string, error) {
-	var friendsOfFriends []string
+func getFriendsOfFriends(db *sql.DB, friendIdList []string) (map[string]bool, error) {
+	friendsOfFriends := make(map[string]bool)
 	for _, friendId := range friendIdList {
 		friendsId, err := getFriendIdList(db, friendId)
 		if err != nil {
@@ -89,7 +94,11 @@ func getFriendsOfFriends(db *sql.DB, friendIdList []string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		friendsOfFriends = append(friendsOfFriends, friends...)
+		for _, friend := range friends {
+			if _, ok := friendsOfFriends[friend]; !ok {
+				friendsOfFriends[friend] = true
+			}
+		}
 	}
 	return friendsOfFriends, nil
 }
