@@ -59,24 +59,17 @@ func main() {
 		} else if friendIdList == nil {
 			return c.JSON(http.StatusOK, "no friends")
 		} else {
-			blockedIdList, err := FriendDAO.GetBlockedUsers(id)
+			friendList, err := FriendDAO.GetFriendsOfFriends(friendIdList)
 			if err != nil {
 				return err
-			} else if blockedIdList == nil {
+			} else if friendList == nil {
 				return c.JSON(http.StatusOK, "no friends")
 			} else {
-				friendList, err := FriendDAO.GetFriendsOfFriends(friendIdList, blockedIdList)
-				if err != nil {
-					return err
-				} else if friendList == nil {
-					return c.JSON(http.StatusOK, "no friends")
-				} else {
-					var ret []string
-					for friend, _ := range friendList {
-						ret = append(ret, friend.Name)
-					}
-					return c.JSON(http.StatusOK, ret)
+				var ret []string
+				for friend, _ := range friendList {
+					ret = append(ret, friend.Name)
 				}
+				return c.JSON(http.StatusOK, ret)
 			}
 		}
 	})

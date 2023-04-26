@@ -15,7 +15,7 @@ type FriendDAO interface {
 	GetFriends(friendIdList []string) (map[Friend]bool, error)
 	GetFriendIdList(id string) ([]string, error)
 	GetBlockedUsers(id string) (map[string]bool, error)
-	GetFriendsOfFriends(friendIdList []string, blockedUsers map[string]bool) (map[Friend]bool, error)
+	GetFriendsOfFriends(friendIdList []string) (map[Friend]bool, error)
 	NewSQLFriendDAO(id string, name string) error
 }
 
@@ -85,7 +85,7 @@ func (dao *SQLFriendDAO) GetFriendIdList(id string) ([]string, error) {
 	return friendIdList, nil
 }
 
-func (dao *SQLFriendDAO) GetFriendsOfFriends(friendIdList []string, blockedUsers map[string]bool) (map[Friend]bool, error) {
+func (dao *SQLFriendDAO) GetFriendsOfFriends(friendIdList []string) (map[Friend]bool, error) {
 	friendList := make(map[Friend]bool, 0)
 	for _, friendId := range friendIdList {
 		friendIdList, err := dao.GetFriendIdList(friendId)
@@ -97,9 +97,6 @@ func (dao *SQLFriendDAO) GetFriendsOfFriends(friendIdList []string, blockedUsers
 			return nil, err
 		}
 		for friend, _ := range friends {
-			if _, yes := blockedUsers[friend.Id]; yes {
-				continue
-			}
 			friendList[friend] = true
 		}
 	}
