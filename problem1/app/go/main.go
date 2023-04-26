@@ -27,7 +27,11 @@ func main() {
 
 	e.GET("/get_friend_list", func(c echo.Context) error {
 		id := c.QueryParam("id")
-		friendList, err := getFriendList(db, id)
+		friendIdList, err := getFriendIdList(db, id)
+		if err != nil {
+			return err
+		}
+		friendList, err := getFriendList(db, friendIdList)
 		if err != nil {
 			return err
 		}
@@ -36,11 +40,15 @@ func main() {
 
 	e.GET("/get_friend_of_friend_list", func(c echo.Context) error {
 		id := c.QueryParam("id")
-		friendOfFriendList, err := getFriendOfFriendList(db, id)
+		friendIdList, err := getFriendIdList(db, id)
 		if err != nil {
 			return err
 		}
-		return c.JSON(http.StatusOK, friendOfFriendList)
+		friendsOfFriends, err := getFriendsOfFriends(db, friendIdList)
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, friendsOfFriends)
 	})
 
 	e.GET("/get_friend_of_friend_list_paging", func(c echo.Context) error {
@@ -51,20 +59,8 @@ func main() {
 	e.Logger.Fatal(e.Start(":" + strconv.Itoa(conf.Server.Port)))
 }
 
-func getFriendList(db *sql.DB, id string) ([]string, error) {
-	rows, err := db.Query("SELECT user2_id FROM friend_link WHERE user1_id = ?", id)
-	if err != nil {
-		panic(err)
-	}
-
-	var friendIdList []string
-	for rows.Next() {
-		var friendId string
-		if err := rows.Scan(&friendId); err != nil {
-			return nil, err
-		}
-		friendIdList = append(friendIdList, friendId)
-	}
+// 友達IDリストから友達リストを取得する
+func getFriendList(db *sql.DB, friendIdList []string) ([]string, error) {
 	var friendList []string
 	for _, friendID := range friendIdList {
 		rows, err := db.Query("SELECT name FROM users WHERE user_id = ?", friendID)
@@ -81,7 +77,40 @@ func getFriendList(db *sql.DB, id string) ([]string, error) {
 	return friendList, nil
 }
 
-func getFriendOfFriendList(db *sql.DB, id string) ([]string, error) {
-	// FIXME
-	return nil, nil
+// 友達リストからリストの各要素について，その友達リストを取得する
+func getFriendsOfFriends(db *sql.DB, friendIdList []string) ([]string, error) {
+	var friendsOfFriends []string
+	for _, friendId := range friendIdList {
+		friendsId, err := getFriendIdList(db, friendId)
+		if err != nil {
+			return nil, err
+		}
+		friends, err := getFriendList(db, friendsId)
+		if err != nil {
+			return nil, err
+		}
+		friendsOfFriends = append(friendsOfFriends, friends...)
+	}
+	return friendsOfFriends, nil
+}
+
+func getFriendIdList(db *sql.DB, id string) ([]string, error) {
+	query := `
+		SELECT user2_id FROM friend_link WHERE user1_id = ?
+		UNION
+		SELECT user1_id FROM friend_link WHERE user2_id = ?
+	`
+	rows, err := db.Query(query, id, id)
+	if err != nil {
+		panic(err)
+	}
+	var friendIdList []string
+	for rows.Next() {
+		var friendId string
+		if err := rows.Scan(&friendId); err != nil {
+			return nil, err
+		}
+		friendIdList = append(friendIdList, friendId)
+	}
+	return friendIdList, nil
 }
