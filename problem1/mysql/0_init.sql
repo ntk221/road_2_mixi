@@ -32,6 +32,7 @@ INSERT INTO friend_link (user1_id, user2_id) VALUES (1, 3);
 INSERT INTO friend_link (user1_id, user2_id) VALUES (2, 3);
 INSERT INTO friend_link (user1_id, user2_id) VALUES (4, 5);
 INSERT INTO friend_link (user1_id, user2_id) VALUES (5, 6);
+INSERT INTO friend_link (user1_id, user2_id) VALUES (1, 6);
 
 
 INSERT INTO block_list (user1_id, user2_id) VALUES (2, 3);
