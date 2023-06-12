@@ -2,11 +2,14 @@ package main
 
 import (
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/labstack/echo/v4"
+	"handler"
 	"net/http"
 	"problem1/configs"
+	"problem1/handler"
 	"strconv"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/labstack/echo/v4"
 )
 
 func main() {
@@ -24,10 +27,7 @@ func main() {
 		return c.String(http.StatusOK, "minimal_sns_app")
 	})
 
-	e.GET("/get_friend_list", func(c echo.Context) error {
-		// FIXME
-		return nil
-	})
+	e.GET("/get_friend_list", handler.GetFriendListHandler(db))
 
 	e.GET("/get_friend_of_friend_list", func(c echo.Context) error {
 		// FIXME

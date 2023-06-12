@@ -26,11 +26,11 @@ services:
 #    volumes:
 #      - socket:/var/run/unicorn/
 # NOTE: for go
-#    build: app/go
-#    volumes:
-#      - ./app/go:/app
-#    ports:
-#      - "1323:1323"
+    build: app/go
+    volumes:
+      - ./app/go:/app
+    ports:
+      - "1323:1323"
     networks:
       - front
       - back
@@ -46,6 +46,7 @@ services:
       - ./mysql/my.cnf:/etc/mysql/my.cnf
       - ./mysql/conf.d/mysql.cnf:/etc/mysql/conf.d/mysql.cnf
       - ./mysql/0_init.sql:/docker-entrypoint-initdb.d/0_init.sql
+      - ./mysql/insert_data.sql:/docker-entrypoint-initdb.d/insert_data.sql
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: app
