@@ -3,10 +3,8 @@ package handler
 import (
 	"database/sql"
 	"net/http"
-	"problem1/model"
 	"problem1/repository"
 	service "problem1/services"
-	"strconv"
 
 	"github.com/labstack/echo/v4"
 )
@@ -43,17 +41,13 @@ func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, err)
 		}
 
-		fofs := make([]model.User, 0)
-		for _, friend := range friendList {
-			fof, err := us.GetFriendList(strconv.FormatInt(friend.ID, 10))
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, err)
-			}
-			fofs = append(fofs, fof...)
+		fof, err := us.GetFriendListFromUsers(friendList)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
 		}
 
 		fofNames := make([]string, 0)
-		for _, v := range fofs {
+		for _, v := range fof {
 			fofNames = append(fofNames, v.Name)
 		}
 

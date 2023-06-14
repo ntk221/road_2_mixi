@@ -3,10 +3,12 @@ package service
 import (
 	"problem1/model"
 	"problem1/repository"
+	"strconv"
 )
 
 type UserService interface {
 	GetFriendList(id string) ([]model.User, error)
+	GetFriendListFromUsers([]model.User) ([]model.User, error)
 }
 
 type UserServiceImpl struct {
@@ -31,6 +33,19 @@ func (us UserServiceImpl) GetFriendList(id string) ([]model.User, error) {
 	filteredFriends := fileterBlockedFriends(friends, blockedUsers)
 
 	return filteredFriends, nil
+}
+
+func (us UserServiceImpl) GetFriendListFromUsers(friendList []model.User) ([]model.User, error) {
+	fofs := make([]model.User, 0)
+
+	for _, friend := range friendList {
+		fof, err := us.GetFriendList(strconv.FormatInt(friend.ID, 10))
+		if err != nil {
+			return nil, err
+		}
+		fofs = append(fofs, fof...)
+	}
+	return fofs, nil
 }
 
 func fileterBlockedFriends(friends []model.User, blocked []model.User) []model.User {
