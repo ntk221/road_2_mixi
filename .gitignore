@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ### https://raw.github.com/github/gitignore/752b7678db497edb377fa982ded0c70035393794/Global/macOS.gitignore
 
 # General
@@ -290,6 +291,8 @@ build-iPhoneSimulator/
 
 ### https://raw.github.com/github/gitignore/752b7678db497edb377fa982ded0c70035393794/Go.gitignore
 
+=======
+>>>>>>> origin/main
 # If you prefer the allow list template instead of the deny list, see community template:
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
 #
@@ -311,5 +314,8 @@ build-iPhoneSimulator/
 
 # Go workspace file
 go.work
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> origin/main

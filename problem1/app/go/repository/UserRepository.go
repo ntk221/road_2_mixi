@@ -2,13 +2,15 @@ package repository
 
 import (
 	"database/sql"
+	"problem1/model"
 	"strings"
 )
 
 type UserRepository interface {
-	GetFriendIDs(id string) ([]string, error)
-	GetBlockedUsers(id string) ([]string, error)
-	GetFriendNames(ids []string) ([]string, error)
+	GetFriendsByID(id string) ([]model.User, error)
+	GetBlockedUsersByID(id string) ([]model.User, error)
+	GetUser(id string) (string, error)
+	// GetFriendNames(ids []string) ([]string, error)
 }
 
 type UserRepositoryImpl struct {
@@ -19,7 +21,7 @@ func NewUserRepository(db *sql.DB) *UserRepositoryImpl {
 	return &UserRepositoryImpl{db: db}
 }
 
-func (ur *UserRepositoryImpl) GetFriendIDs(id string) ([]string, error) {
+func (ur *UserRepositoryImpl) GetFriendsByID(id string) ([]model.User, error) {
 	query := `SELECT user1_id, user2_id FROM friend_link WHERE user1_id = ? OR user2_id = ?`
 	rows, err := ur.db.Query(query, id, id)
 	if err != nil {
@@ -40,10 +42,19 @@ func (ur *UserRepositoryImpl) GetFriendIDs(id string) ([]string, error) {
 		}
 	}
 
-	return friendIDs, nil
+	friends := make([]model.User, 0)
+	for i, friendID := range friendIDs {
+		friend, err := ur.GetByID(friendID)
+		if err != nil {
+			return nil, err
+		}
+		friends[i] = friend
+	}
+
+	return friends, nil
 }
 
-func (ur *UserRepositoryImpl) GetBlockedUsers(id string) ([]string, error) {
+func (ur *UserRepositoryImpl) GetBlockedUsersByID(id string) ([]model.User, error) {
 	query := `SELECT user1_id, user2_id FROM block_list WHERE user1_id = ? OR user2_id = ?`
 	rows, err := ur.db.Query(query, id, id)
 	if err != nil {
@@ -51,21 +62,42 @@ func (ur *UserRepositoryImpl) GetBlockedUsers(id string) ([]string, error) {
 	}
 	defer rows.Close()
 
-	var blockedUsers []string
+	var blockedIDs []string
 	for rows.Next() {
 		var user1ID, user2ID string
 		if err := rows.Scan(&user1ID, &user2ID); err != nil {
 			return nil, err
 		}
 		if user1ID != id {
-			blockedUsers = append(blockedUsers, user1ID)
+			blockedIDs = append(blockedIDs, user1ID)
 		}
 		if user2ID != id {
-			blockedUsers = append(blockedUsers, user2ID)
+			blockedIDs = append(blockedIDs, user2ID)
 		}
 	}
 
-	return blockedUsers, nil
+	blocked := make([]model.User, 0)
+	for i, blockedID := range blockedIDs {
+		blockedUser, err := ur.GetByID(blockedID)
+		if err != nil {
+			return nil, err
+		}
+		blocked[i] = blockedUser
+	}
+
+	return blocked, nil
+}
+
+func (ur *UserRepositoryImpl) GetByID(id string) (model.User, error) {
+	query := `SELECT name FROM users WHERE id = ?`
+	row := ur.db.QueryRow(query, id)
+
+	var name model.User
+	if err := row.Scan(&name); err != nil {
+		return model.User{}, err
+	}
+
+	return name, nil
 }
 
 func (ur *UserRepositoryImpl) GetFriendNames(ids []string) ([]string, error) {
