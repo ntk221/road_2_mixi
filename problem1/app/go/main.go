@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"handler"
 	"net/http"
 	"problem1/configs"
 	"problem1/handler"

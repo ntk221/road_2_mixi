@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"problem1/model"
 	"strings"
 )
@@ -43,12 +44,12 @@ func (ur *UserRepositoryImpl) GetFriendsByID(id string) ([]model.User, error) {
 	}
 
 	friends := make([]model.User, 0)
-	for i, friendID := range friendIDs {
+	for _, friendID := range friendIDs {
 		friend, err := ur.GetByID(friendID)
 		if err != nil {
 			return nil, err
 		}
-		friends[i] = friend
+		friends = append(friends, friend)
 	}
 
 	return friends, nil
@@ -77,27 +78,29 @@ func (ur *UserRepositoryImpl) GetBlockedUsersByID(id string) ([]model.User, erro
 	}
 
 	blocked := make([]model.User, 0)
-	for i, blockedID := range blockedIDs {
+	for _, blockedID := range blockedIDs {
 		blockedUser, err := ur.GetByID(blockedID)
 		if err != nil {
 			return nil, err
 		}
-		blocked[i] = blockedUser
+		blocked = append(blocked, blockedUser)
 	}
 
 	return blocked, nil
 }
 
 func (ur *UserRepositoryImpl) GetByID(id string) (model.User, error) {
-	query := `SELECT name FROM users WHERE id = ?`
+	query := `SELECT id, user_id, name FROM users WHERE id = ?`
 	row := ur.db.QueryRow(query, id)
 
-	var name model.User
-	if err := row.Scan(&name); err != nil {
+	var user model.User
+	if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
+		if err == sql.ErrNoRows {
+			return model.User{}, fmt.Errorf("user not found")
+		}
 		return model.User{}, err
 	}
-
-	return name, nil
+	return user, nil
 }
 
 func (ur *UserRepositoryImpl) GetFriendNames(ids []string) ([]string, error) {
