@@ -2,9 +2,10 @@ package handler
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
-	"problem1/model"
 	"problem1/repository"
+	service "problem1/services"
 
 	"github.com/labstack/echo/v4"
 )
@@ -13,43 +14,37 @@ func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id := c.QueryParam("id")
 		ur := repository.NewUserRepository(db)
+		us := service.NewUserService(ur)
 
-		friends, err := ur.GetFriendsByID(id)
+		filteredFriends, err := us.GetFriendList(id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)
-			return err
 		}
 
-		blockedUsers, err := ur.GetBlockedUsersByID(id)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return err
+		friendNames := make([]string, 0)
+		for _, friend := range filteredFriends {
+			friendNames = append(friendNames, friend.Name)
 		}
-
-		friendNames := fileterBlockedFriends(friends, blockedUsers)
 
 		c.JSON(http.StatusOK, friendNames)
 		return nil
 	}
 }
 
-func fileterBlockedFriends(friends []model.User, blocked []model.User) []string {
-	friendNames := make([]string, 0)
+func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		id := c.QueryParam("id")
+		ur := repository.NewUserRepository(db)
+		us := service.NewUserService(ur)
 
-	for _, friend := range friends {
-		if !contains(blocked, friend) {
-			friendNames = append(friendNames, friend.Name)
+		friendList, err := us.GetFriendList(id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
 		}
-	}
 
-	return friendNames
-}
+		fmt.Printf("friend list%v", friendList)
 
-func contains(slice []model.User, value model.User) bool {
-	for _, item := range slice {
-		if item.ID == value.ID {
-			return true
-		}
+		// TODO: friendListのそれぞれについて，friendListを取得する
+		return nil
 	}
-	return false
 }
