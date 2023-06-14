@@ -28,10 +28,7 @@ func main() {
 
 	e.GET("/get_friend_list", handler.GetFriendListHandler(db))
 
-	e.GET("/get_friend_of_friend_list", func(c echo.Context) error {
-		// FIXME
-		return nil
-	})
+	e.GET("/get_friend_of_friend_list", handler.GetFriendOfFriendListHandler(db))
 
 	e.GET("/get_friend_of_friend_list_paging", func(c echo.Context) error {
 		// FIXME
