@@ -103,7 +103,7 @@ func (ur *UserRepositoryImpl) GetByID(id string) (model.User, error) {
 	return user, nil
 }
 
-func (ur *UserRepositoryImpl) GetFriendNames(ids []string) ([]string, error) {
+/*func (ur *UserRepositoryImpl) GetFriendNames(ids []string) ([]string, error) {
 	query := `SELECT name FROM users WHERE id IN (?)`
 	query = replacePlaceholders(query, len(ids))
 
@@ -128,7 +128,7 @@ func (ur *UserRepositoryImpl) GetFriendNames(ids []string) ([]string, error) {
 	}
 
 	return friendNames, nil
-}
+}*/
 
 func replacePlaceholders(query string, argCount int) string {
 	placeholders := make([]string, argCount)

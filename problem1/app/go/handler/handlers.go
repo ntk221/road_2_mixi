@@ -20,34 +20,29 @@ func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 			return err
 		}
 
-		/*if len(friends) == 0 {
-			panic("No friends")
-		}*/
-
 		blockedUsers, err := ur.GetBlockedUsersByID(id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)
 			return err
 		}
 
-		/*if len(blockedUsers) == 0 {
-			panic("No blocked users")
-		}*/
-
-		friendNames := make([]string, 0)
-		for _, friend := range friends {
-			if !contains(blockedUsers, friend) {
-				friendNames = append(friendNames, friend.Name)
-			}
-		}
-
-		/*if len(friendNames) == 0 {
-			panic("No friend names")
-		}*/
+		friendNames := fileterBlockedFriends(friends, blockedUsers)
 
 		c.JSON(http.StatusOK, friendNames)
 		return nil
 	}
+}
+
+func fileterBlockedFriends(friends []model.User, blocked []model.User) []string {
+	friendNames := make([]string, 0)
+
+	for _, friend := range friends {
+		if !contains(blocked, friend) {
+			friendNames = append(friendNames, friend.Name)
+		}
+	}
+
+	return friendNames
 }
 
 func contains(slice []model.User, value model.User) bool {
