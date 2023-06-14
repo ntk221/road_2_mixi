@@ -2,16 +2,10 @@ package main
 
 import (
 	"database/sql"
-<<<<<<< HEAD
 	"handler"
 	"net/http"
 	"problem1/configs"
 	"problem1/handler"
-=======
-	"net/http"
-	"problem1/configs"
-	"problem1/dao"
->>>>>>> origin/main
 	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
