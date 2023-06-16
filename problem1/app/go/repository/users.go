@@ -3,28 +3,29 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	"problem1/clock"
 	"problem1/model"
 	"strings"
 )
 
 type UserRepository interface {
-	GetFriendsByID(user_id int) ([]model.User, error)
-	GetBlockedUsersByID(user_id int) ([]model.User, error)
-	GetByID(user_id int) (model.User, error)
+	GetFriendsByID(user_id int, db Queryer) ([]model.User, error)
+	GetBlockedUsersByID(user_id int, db Queryer) ([]model.User, error)
+	GetByID(user_id int, db Queryer) (model.User, error)
 	// GetFriendNames(ids []string) ([]string, error)
 }
 
 type UserRepositoryImpl struct {
-	db *sql.DB
+	clock clock.Clocker
 }
 
-func NewUserRepository(db *sql.DB) *UserRepositoryImpl {
-	return &UserRepositoryImpl{db: db}
+func NewUserRepository() *UserRepositoryImpl {
+	return &UserRepositoryImpl{}
 }
 
-func (ur *UserRepositoryImpl) GetFriendsByID(user_id int) ([]model.User, error) {
+func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, db Queryer) ([]model.User, error) {
 	query := `SELECT user1_id, user2_id FROM friend_link WHERE user1_id = ? OR user2_id = ?`
-	rows, err := ur.db.Query(query, user_id, user_id)
+	rows, err := db.Query(query, user_id, user_id)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +46,7 @@ func (ur *UserRepositoryImpl) GetFriendsByID(user_id int) ([]model.User, error) 
 
 	friends := make([]model.User, 0)
 	for _, friendID := range friendIDs {
-		friend, err := ur.GetByID(friendID)
+		friend, err := ur.GetByID(friendID, db)
 		if err != nil {
 			return nil, err
 		}
@@ -55,9 +56,9 @@ func (ur *UserRepositoryImpl) GetFriendsByID(user_id int) ([]model.User, error) 
 	return friends, nil
 }
 
-func (ur *UserRepositoryImpl) GetBlockedUsersByID(user_id int) ([]model.User, error) {
+func (ur *UserRepositoryImpl) GetBlockedUsersByID(user_id int, db Queryer) ([]model.User, error) {
 	query := `SELECT user1_id, user2_id FROM block_list WHERE user1_id = ? OR user2_id = ?`
-	rows, err := ur.db.Query(query, user_id, user_id)
+	rows, err := db.Query(query, user_id, user_id)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +80,7 @@ func (ur *UserRepositoryImpl) GetBlockedUsersByID(user_id int) ([]model.User, er
 
 	blocked := make([]model.User, 0)
 	for _, blockedID := range blockedIDs {
-		blockedUser, err := ur.GetByID(blockedID)
+		blockedUser, err := ur.GetByID(blockedID, db)
 		if err != nil {
 			return nil, err
 		}
@@ -89,9 +90,9 @@ func (ur *UserRepositoryImpl) GetBlockedUsersByID(user_id int) ([]model.User, er
 	return blocked, nil
 }
 
-func (ur *UserRepositoryImpl) GetByID(user_id int) (model.User, error) {
+func (ur *UserRepositoryImpl) GetByID(user_id int, db Queryer) (model.User, error) {
 	query := `SELECT id, user_id, name FROM users WHERE user_id = ?`
-	row := ur.db.QueryRow(query, user_id)
+	row := db.QueryRow(query, user_id)
 
 	var user model.User
 	if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {

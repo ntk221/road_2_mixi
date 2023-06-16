@@ -1,31 +1,35 @@
 package service
 
 import (
+	"database/sql"
 	"problem1/model"
 	"problem1/repository"
-	"strconv"
 )
 
 type UserService interface {
-	GetFriendList(id string) ([]model.User, error)
+	GetFriendList(user_id int) ([]model.User, error)
 	GetFriendListFromUsers([]model.User) ([]model.User, error)
 }
 
 type UserServiceImpl struct {
-	ur repository.UserRepository
+	db *sql.DB
+	ur *repository.UserRepositoryImpl
 }
 
-func NewUserService(ur repository.UserRepository) UserService {
-	return &UserServiceImpl{ur: ur}
+func NewUserService(db *sql.DB, ur *repository.UserRepositoryImpl) UserService {
+	return &UserServiceImpl{
+		db: db,
+		ur: ur,
+	}
 }
 
-func (us UserServiceImpl) GetFriendList(id string) ([]model.User, error) {
-	friends, err := us.ur.GetFriendsByID(id)
+func (us UserServiceImpl) GetFriendList(user_id int) ([]model.User, error) {
+	friends, err := us.ur.GetFriendsByID(user_id, us.db)
 	if err != nil {
 		return nil, err
 	}
 
-	blockedUsers, err := us.ur.GetBlockedUsersByID(id)
+	blockedUsers, err := us.ur.GetBlockedUsersByID(user_id, us.db)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +43,7 @@ func (us UserServiceImpl) GetFriendListFromUsers(friendList []model.User) ([]mod
 	fofs := make([]model.User, 0)
 
 	for _, friend := range friendList {
-		fof, err := us.GetFriendList(strconv.FormatInt(friend.ID, 10))
+		fof, err := us.GetFriendList(friend.UserID)
 		if err != nil {
 			return nil, err
 		}

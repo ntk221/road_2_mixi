@@ -5,16 +5,21 @@ import (
 	"net/http"
 	"problem1/repository"
 	service "problem1/services"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 )
 
 func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		id := c.QueryParam("id")
-		ur := repository.NewUserRepository(db)
-		us := service.NewUserService(ur)
+		id_s := c.QueryParam("id")
+		ur := repository.NewUserRepository()
+		us := service.NewUserService(db, ur)
 
+		id, err := strconv.Atoi(id_s)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+		}
 		filteredFriends, err := us.GetFriendList(id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)
@@ -32,10 +37,14 @@ func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 
 func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		id := c.QueryParam("id")
-		ur := repository.NewUserRepository(db)
-		us := service.NewUserService(ur)
+		id_s := c.QueryParam("id")
+		ur := repository.NewUserRepository()
+		us := service.NewUserService(db, ur)
 
+		id, err := strconv.Atoi(id_s)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+		}
 		friendList, err := us.GetFriendList(id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)

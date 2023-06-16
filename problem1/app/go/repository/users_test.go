@@ -52,31 +52,15 @@ func TestUserRepository_GetByID(t *testing.T) {
 		t.Fatalf("unexpected number of rows inserted: got %d, want %d", count, 1)
 	}
 
-	// sut := NewUserRepository(db)
+	sut := NewUserRepository()
 
-	query := `SELECT id, user_id, name FROM users WHERE user_id = ?`
-	row = tx.QueryRow(query, testUser.UserID)
+	got, err := sut.GetByID(testUser.UserID, tx)
 
-	var user model.User
-	if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
-		if err == sql.ErrNoRows {
-			t.Errorf("got %v, want %v", err, testUser)
-		}
+	if err != nil {
+		t.Errorf("got %v, want %v", err, testUser)
 	}
 
-	// 存在するユーザーの取得をテスト
-	query = `SELECT id, user_id, name FROM users WHERE user_id = ?`
-	row = tx.QueryRow(query, user.UserID)
-
-	// got, err := sut.GetByID(user.UserID)
-	var got model.User
-	if err := row.Scan(&got.ID, &got.UserID, &got.Name); err != nil {
-		if err == sql.ErrNoRows {
-			t.Errorf("got %v, want %v", err, testUser)
-		}
-	}
-
-	if got != testUser {
+	if got.ID != testUser.ID {
 		t.Errorf("got %v, want %v", err, testUser)
 	}
 
