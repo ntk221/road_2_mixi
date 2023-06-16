@@ -3,7 +3,6 @@ package repository
 import (
 	"database/sql"
 	"fmt"
-	"problem1/clock"
 	"problem1/model"
 	"strings"
 )
@@ -15,9 +14,7 @@ type UserRepository interface {
 	// GetFriendNames(ids []string) ([]string, error)
 }
 
-type UserRepositoryImpl struct {
-	clock clock.Clocker
-}
+type UserRepositoryImpl struct{}
 
 func NewUserRepository() *UserRepositoryImpl {
 	return &UserRepositoryImpl{}
@@ -103,33 +100,6 @@ func (ur *UserRepositoryImpl) GetByID(user_id int, db Queryer) (model.User, erro
 	}
 	return user, nil
 }
-
-/*func (ur *UserRepositoryImpl) GetFriendNames(ids []string) ([]string, error) {
-	query := `SELECT name FROM users WHERE id IN (?)`
-	query = replacePlaceholders(query, len(ids))
-
-	args := make([]interface{}, len(ids))
-	for i, id := range ids {
-		args[i] = id
-	}
-
-	rows, err := ur.db.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var friendNames []string
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			return nil, err
-		}
-		friendNames = append(friendNames, name)
-	}
-
-	return friendNames, nil
-}*/
 
 func replacePlaceholders(query string, argCount int) string {
 	placeholders := make([]string, argCount)

@@ -2,7 +2,6 @@ package repository
 
 import (
 	"database/sql"
-	"problem1/clock"
 )
 
 type Beginner interface {
@@ -33,5 +32,4 @@ var (
 )
 
 type Repository interface {
-	clock.Clocker
 }

@@ -20,6 +20,7 @@ func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)
 		}
+
 		filteredFriends, err := us.GetFriendList(id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)
@@ -45,6 +46,7 @@ func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)
 		}
+
 		friendList, err := us.GetFriendList(id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)
