@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 	"problem1/model"
+	"problem1/types"
 	"strings"
 )
 
 type UserRepository interface {
-	GetFriendsByID(user_id int, db Queryer) ([]model.User, error)
+	GetFriendsByID(user_id int, params types.PagenationParams, db Queryer) ([]model.User, error)
 	GetBlockedUsersByID(user_id int, db Queryer) ([]model.User, error)
 	GetByID(user_id int, db Queryer) (model.User, error)
 	// GetFriendNames(ids []string) ([]string, error)
@@ -20,7 +21,7 @@ func NewUserRepository() *UserRepositoryImpl {
 	return &UserRepositoryImpl{}
 }
 
-func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, db Queryer) ([]model.User, error) {
+/*func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, db Queryer) ([]model.User, error) {
 	query := `SELECT user1_id, user2_id FROM friend_link WHERE user1_id = ? OR user2_id = ?`
 	rows, err := db.Query(query, user_id, user_id)
 	if err != nil {
@@ -45,6 +46,40 @@ func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, db Queryer) ([]model.U
 	for _, friendID := range friendIDs {
 		friend, err := ur.GetByID(friendID, db)
 		if err != nil {
+			return nil, err
+		}
+		friends = append(friends, friend)
+	}
+
+	return friends, nil
+}*/
+
+func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, params types.PagenationParams, db Queryer) ([]model.User, error) {
+	query := `
+		SELECT user_id, name
+		FROM users
+		WHERE user_id IN (
+			SELECT user1_id
+			FROM friend_link
+			WHERE user2_id = ? 
+			UNION 
+			SELECT user2_id
+			FROM friend_link
+			WHERE user1_id = ?
+		)
+		LIMIT ? OFFSET ?
+	`
+
+	rows, err := db.Query(query, user_id, user_id, params.Limit, params.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	friends := make([]model.User, 0)
+	for rows.Next() {
+		var friend model.User
+		if err := rows.Scan(&friend.UserID, &friend.Name); err != nil {
 			return nil, err
 		}
 		friends = append(friends, friend)

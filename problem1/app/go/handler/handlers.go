@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"problem1/repository"
 	service "problem1/services"
+	"problem1/types"
 	"strconv"
 
 	"github.com/labstack/echo/v4"
@@ -84,20 +85,20 @@ func get_id(c echo.Context) (int, error) {
 	return id, nil
 }
 
-func get_limit_page(c echo.Context) (service.PagenationParams, error) {
+func get_limit_page(c echo.Context) (types.PagenationParams, error) {
 	limit_s := c.QueryParam("limit")
 	limit, err := strconv.Atoi(limit_s)
 	if err != nil {
-		return service.PagenationParams{}, err
+		return types.PagenationParams{}, err
 	}
 
 	page_s := c.QueryParam("page")
 	page, err := strconv.Atoi(page_s)
 	if err != nil {
-		return service.PagenationParams{}, err
+		return types.PagenationParams{}, err
 	}
 
-	params := service.PagenationParams{
+	params := types.PagenationParams{
 		Limit:  limit,
 		Offset: page,
 	}

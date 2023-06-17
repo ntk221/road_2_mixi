@@ -4,23 +4,19 @@ import (
 	"database/sql"
 	"problem1/model"
 	"problem1/repository"
+	"problem1/types"
 )
 
 type UserService interface {
 	GetFriendList(user_id int) ([]model.User, error)
 	GetFriendListFromUsers([]model.User) ([]model.User, error)
-	GetFriendListWithPagenation(user_id int, params PagenationParams) ([]model.User, error)
-	GetFriendListFromUsersWithPagenation([]model.User, PagenationParams) ([]model.User, error)
+	GetFriendListWithPagenation(user_id int, params types.PagenationParams) ([]model.User, error)
+	GetFriendListFromUsersWithPagenation([]model.User, types.PagenationParams) ([]model.User, error)
 }
 
 type UserServiceImpl struct {
 	db *sql.DB
 	ur *repository.UserRepositoryImpl
-}
-
-type PagenationParams struct {
-	Offset int
-	Limit  int
 }
 
 func NewUserService(db *sql.DB, ur *repository.UserRepositoryImpl) UserService {
@@ -30,8 +26,8 @@ func NewUserService(db *sql.DB, ur *repository.UserRepositoryImpl) UserService {
 	}
 }
 
-func (us UserServiceImpl) GetFriendListWithPagenation(user_id int, params PagenationParams) ([]model.User, error) {
-	friends, err := us.ur.GetFriendsByID(user_id, us.db)
+func (us UserServiceImpl) GetFriendListWithPagenation(user_id int, params types.PagenationParams) ([]model.User, error) {
+	friends, err := us.ur.GetFriendsByID(user_id, params, us.db)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +42,7 @@ func (us UserServiceImpl) GetFriendListWithPagenation(user_id int, params Pagena
 	return filteredFriends, nil
 }
 
-func (us UserServiceImpl) GetFriendListFromUsersWithPagenation(friendList []model.User, params PagenationParams) ([]model.User, error) {
+func (us UserServiceImpl) GetFriendListFromUsersWithPagenation(friendList []model.User, params types.PagenationParams) ([]model.User, error) {
 	fofs := make([]model.User, 0)
 
 	for _, friend := range friendList {
@@ -60,7 +56,7 @@ func (us UserServiceImpl) GetFriendListFromUsersWithPagenation(friendList []mode
 }
 
 func (us UserServiceImpl) GetFriendList(user_id int) ([]model.User, error) {
-	params := PagenationParams{
+	params := types.PagenationParams{
 		Offset: 0,
 		Limit:  10,
 	}
@@ -69,7 +65,7 @@ func (us UserServiceImpl) GetFriendList(user_id int) ([]model.User, error) {
 }
 
 func (us UserServiceImpl) GetFriendListFromUsers(friendList []model.User) ([]model.User, error) {
-	params := PagenationParams{
+	params := types.PagenationParams{
 		Offset: 0,
 		Limit:  10,
 	}
