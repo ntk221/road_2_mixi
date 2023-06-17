@@ -10,6 +10,6 @@ ps:
 	docker ps
 
 logs:
-	docker-compose logs
+	docker-compose logs -f
 
 re: down up

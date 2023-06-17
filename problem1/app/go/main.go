@@ -23,7 +23,6 @@ func main() {
 	e := echo.New()
 
 	e.GET("/", func(c echo.Context) error {
-		// panic("hoge")
 		return c.String(http.StatusOK, "minimal_sns!")
 	})
 
@@ -31,10 +30,7 @@ func main() {
 
 	e.GET("/get_friend_of_friend_list", handler.GetFriendOfFriendListHandler(db))
 
-	e.GET("/get_friend_of_friend_list_paging", func(c echo.Context) error {
-		// FIXME
-		return nil
-	})
+	e.GET("/get_friend_of_friend_list_paging", handler.GetFriendOfFriendListPagingHandler(db))
 
 	e.GET("/health", func(c echo.Context) error {
 		return c.String(http.StatusOK, "OK")
