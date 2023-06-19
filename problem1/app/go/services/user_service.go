@@ -46,12 +46,14 @@ func (us UserServiceImpl) GetFriendListFromUsersWithPagenation(friendList []mode
 	fofs := make([]model.User, 0)
 
 	for _, friend := range friendList {
-		fof, err := us.GetFriendListWithPagenation(friend.UserID, params)
+		fof, err := us.GetFriendList(friend.UserID)
 		if err != nil {
 			return nil, err
 		}
 		fofs = append(fofs, fof...)
 	}
+
+	fofs = pagenate(params, fofs)
 	return fofs, nil
 }
 
@@ -92,4 +94,16 @@ func contains(slice []model.User, value model.User) bool {
 		}
 	}
 	return false
+}
+
+func pagenate(params types.PagenationParams, users []model.User) []model.User {
+	if params.Offset > len(users) {
+		return make([]model.User, 0)
+	}
+
+	if params.Offset+params.Limit > len(users) {
+		return users[params.Offset:]
+	}
+
+	return users[params.Offset : params.Offset+params.Limit]
 }

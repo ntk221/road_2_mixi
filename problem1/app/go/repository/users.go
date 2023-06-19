@@ -21,39 +21,6 @@ func NewUserRepository() *UserRepositoryImpl {
 	return &UserRepositoryImpl{}
 }
 
-/*func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, db Queryer) ([]model.User, error) {
-	query := `SELECT user1_id, user2_id FROM friend_link WHERE user1_id = ? OR user2_id = ?`
-	rows, err := db.Query(query, user_id, user_id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var friendIDs []int
-	for rows.Next() {
-		var friend1ID, friend2ID int
-		if err := rows.Scan(&friend1ID, &friend2ID); err != nil {
-			return nil, err
-		}
-		if friend1ID == user_id {
-			friendIDs = append(friendIDs, friend2ID)
-		} else {
-			friendIDs = append(friendIDs, friend1ID)
-		}
-	}
-
-	friends := make([]model.User, 0)
-	for _, friendID := range friendIDs {
-		friend, err := ur.GetByID(friendID, db)
-		if err != nil {
-			return nil, err
-		}
-		friends = append(friends, friend)
-	}
-
-	return friends, nil
-}*/
-
 func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, params types.PagenationParams, db Queryer) ([]model.User, error) {
 	query := `
 		SELECT user_id, name
@@ -69,6 +36,8 @@ func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, params types.Pagenatio
 		)
 		LIMIT ? OFFSET ?
 	`
+
+	// params.Limit = 2
 
 	rows, err := db.Query(query, user_id, user_id, params.Limit, params.Offset)
 	if err != nil {
