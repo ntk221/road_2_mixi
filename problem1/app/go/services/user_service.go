@@ -2,16 +2,16 @@ package service
 
 import (
 	"database/sql"
+	"fmt"
 	"problem1/model"
 	"problem1/repository"
-	"problem1/types"
 )
 
 type UserService interface {
 	GetFriendList(user_id int) ([]model.User, error)
 	GetFriendListFromUsers([]model.User) ([]model.User, error)
-	GetFriendListWithPagenation(user_id int, params types.PagenationParams) ([]model.User, error)
-	GetFriendListFromUsersWithPagenation([]model.User, types.PagenationParams) ([]model.User, error)
+	// GetFriendListWithPagenation(user_id int, params types.PagenationParams) ([]model.User, error)
+	// GetFriendListFromUsersWithPagenation([]model.User, types.PagenationParams) ([]model.User, error)
 }
 
 type UserServiceImpl struct {
@@ -26,23 +26,60 @@ func NewUserService(db *sql.DB, ur *repository.UserRepositoryImpl) UserService {
 	}
 }
 
-func (us UserServiceImpl) GetFriendListWithPagenation(user_id int, params types.PagenationParams) ([]model.User, error) {
-	friends, err := us.ur.GetFriendsByID(user_id, params, us.db)
+func (us UserServiceImpl) GetFriendList(user_id int) ([]model.User, error) {
+	user, err := us.ur.GetByID(user_id, us.db)
 	if err != nil {
 		return nil, err
 	}
 
-	blockedUsers, err := us.ur.GetBlockedUsersByID(user_id, us.db)
+	// user が 友人だと思っているだけではなく，相手もuserを友人だと思っていることが条件
+	realFriends, err := us.getRealFriends(user)
 	if err != nil {
 		return nil, err
 	}
 
-	filteredFriends := fileterBlockedFriends(friends, blockedUsers)
+	fmt.Println(realFriends)
+
+	filteredFriends, err := us.fileterWithBlockLink(user, realFriends)
+	if err != nil {
+		return nil, err
+	}
 
 	return filteredFriends, nil
 }
 
-func (us UserServiceImpl) GetFriendListFromUsersWithPagenation(friendList []model.User, params types.PagenationParams) ([]model.User, error) {
+func (us UserServiceImpl) fileterWithBlockLink(user model.User, friends []model.User) ([]model.User, error) {
+	filteredFriends := make([]model.User, 0)
+
+	for _, friend := range friends {
+		if !contains(user.BlockList, friend.UserID) {
+			filteredFriends = append(filteredFriends, friend)
+		}
+	}
+
+	return filteredFriends, nil
+}
+
+func (us UserServiceImpl) getRealFriends(user model.User) ([]model.User, error) {
+	realFriends := make([]model.User, 0)
+
+	for _, friendID := range user.FriendList {
+		friend, err := us.ur.GetByID(friendID, us.db)
+		if err != nil {
+			return nil, err
+		}
+
+		fmt.Println(friend)
+
+		if contains(friend.FriendList, user.UserID) && !contains(user.BlockList, friend.UserID) {
+			realFriends = append(realFriends, friend)
+		}
+	}
+
+	return realFriends, nil
+}
+
+func (us UserServiceImpl) GetFriendListFromUsers(friendList []model.User) ([]model.User, error) {
 	fofs := make([]model.User, 0)
 
 	for _, friend := range friendList {
@@ -53,57 +90,15 @@ func (us UserServiceImpl) GetFriendListFromUsersWithPagenation(friendList []mode
 		fofs = append(fofs, fof...)
 	}
 
-	fofs = pagenate(params, fofs)
+	// fofs = pagenate(params, fofs)
 	return fofs, nil
 }
 
-func (us UserServiceImpl) GetFriendList(user_id int) ([]model.User, error) {
-	params := types.PagenationParams{
-		Offset: 0,
-		Limit:  10,
-	}
-
-	return us.GetFriendListWithPagenation(user_id, params)
-}
-
-func (us UserServiceImpl) GetFriendListFromUsers(friendList []model.User) ([]model.User, error) {
-	params := types.PagenationParams{
-		Offset: 0,
-		Limit:  10,
-	}
-
-	return us.GetFriendListFromUsersWithPagenation(friendList, params)
-}
-
-func fileterBlockedFriends(friends []model.User, blocked []model.User) []model.User {
-	friendNames := make([]model.User, 0)
-
-	for _, friend := range friends {
-		if !contains(blocked, friend) {
-			friendNames = append(friendNames, friend)
-		}
-	}
-
-	return friendNames
-}
-
-func contains(slice []model.User, value model.User) bool {
+func contains(slice []int, value int) bool {
 	for _, item := range slice {
-		if item.ID == value.ID {
+		if item == value {
 			return true
 		}
 	}
 	return false
-}
-
-func pagenate(params types.PagenationParams, users []model.User) []model.User {
-	if params.Offset > len(users) {
-		return make([]model.User, 0)
-	}
-
-	if params.Offset+params.Limit > len(users) {
-		return users[params.Offset:]
-	}
-
-	return users[params.Offset : params.Offset+params.Limit]
 }

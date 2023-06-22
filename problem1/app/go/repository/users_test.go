@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"problem1/configs"
 	"problem1/model"
-	"problem1/types"
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUserRepository_GetByID(t *testing.T) {
@@ -44,7 +44,7 @@ func TestUserRepository_GetByID(t *testing.T) {
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO friend_links (user1_id, user2_id) VALUES (?, ?), (?, ?);
+		INSERT INTO friend_link (user1_id, user2_id) VALUES (?, ?), (?, ?);
 	`, testUser.UserID, testUser.FriendList[0], testUser.UserID, testUser.FriendList[1])
 	if err != nil {
 		t.Fatal(err)
@@ -182,16 +182,12 @@ func TestUserRepository_GetFriendsByID(t *testing.T) {
 
 	sut := NewUserRepository()
 
-	testParams := types.PagenationParams{Limit: 2, Offset: 1}
-
-	got, err := sut.GetFriendsByID(testUsers[0].UserID, testParams, tx)
+	got, err := sut.GetFriendsByID(testUsers[0].UserID, tx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(got) != 2 {
-		t.Fatalf("unexpected number of rows inserted: got %d, want %d", len(got), 2)
-	}
+	assert.Equal(t, 4, len(got)) // 1<->2, 1<->3, 1->4, 1->5 なので4人
 }
 
 // テスト用のユーザーをDBに登録する

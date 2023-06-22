@@ -9,7 +9,7 @@ import (
 
 type UserRepository interface {
 	GetFriendsByID(user_id int, db Queryer) ([]model.User, error)
-	GetBlockedUsersByID(user_id int, db Queryer) ([]model.User, error)
+	GetBlockUsersByID(user_id int, db Queryer) ([]model.User, error)
 	GetByID(user_id int, db Queryer) (model.User, error)
 	// GetFriendNames(ids []string) ([]string, error)
 }
@@ -20,9 +20,11 @@ func NewUserRepository() *UserRepositoryImpl {
 	return &UserRepositoryImpl{}
 }
 
-func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, db Queryer) ([]model.User, error) {
+// FriendLinkテーブルから友達のIDを取得
+// 一方が友達になっている場合には，友人リストに追加している
+func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, db Queryer) ([]int, error) {
 	query := `
-		SELECT user_id, name
+		SELECT user_id
 		FROM users
 		WHERE user_id IN (
 			SELECT user1_id
@@ -33,7 +35,6 @@ func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, db Queryer) ([]model.U
 			FROM friend_link
 			WHERE user1_id = ?
 		)
-		LIMIT ? OFFSET ?
 	`
 
 	// params.Limit = 2
@@ -43,34 +44,38 @@ func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, db Queryer) ([]model.U
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		panic(err)
+		return nil, fmt.Errorf("failed to query: %w", err)
 	}
 	defer rows.Close()
 
-	friends := make([]model.User, 0)
+	friends := make([]int, 0)
 	for rows.Next() {
 		var friend model.User
-		if err := rows.Scan(&friend.UserID, &friend.Name); err != nil {
+		if err := rows.Scan(&friend.UserID); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil, sql.ErrNoRows
 			}
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
-		friends = append(friends, friend)
+		friends = append(friends, friend.UserID)
 	}
 
 	return friends, nil
 }
 
-func (ur *UserRepositoryImpl) GetBlockedUsersByID(user_id int, db Queryer) ([]model.User, error) {
+// ブロックしているユーザーのIDを取得
+func (ur *UserRepositoryImpl) GetBlockUsersByID(user_id int, db Queryer) ([]int, error) {
 	query := `SELECT user1_id, user2_id FROM block_list WHERE user1_id = ? OR user2_id = ?`
 	rows, err := db.Query(query, user_id, user_id)
 	if err != nil {
-		panic(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, sql.ErrNoRows
+		}
+		return nil, fmt.Errorf("failed to query: %w", err)
 	}
 	defer rows.Close()
 
-	var blockedIDs []int
+	var blockIDs []int
 	for rows.Next() {
 		var user1ID, user2ID int
 		if err := rows.Scan(&user1ID, &user2ID); err != nil {
@@ -80,27 +85,14 @@ func (ur *UserRepositoryImpl) GetBlockedUsersByID(user_id int, db Queryer) ([]mo
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		if user1ID != user_id {
-			blockedIDs = append(blockedIDs, user1ID)
+			blockIDs = append(blockIDs, user1ID)
 		}
 		if user2ID != user_id {
-			blockedIDs = append(blockedIDs, user2ID)
+			blockIDs = append(blockIDs, user2ID)
 		}
 	}
 
-	blocked := make([]model.User, 0)
-	for _, blockedID := range blockedIDs {
-		blockedUser, err := ur.GetByID(blockedID, db)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return nil, sql.ErrNoRows
-			} else {
-				return nil, fmt.Errorf("failed to get blocked user: %w", err)
-			}
-		}
-		blocked = append(blocked, blockedUser)
-	}
-
-	return blocked, nil
+	return blockIDs, nil
 }
 
 func (ur *UserRepositoryImpl) GetByID(user_id int, db Queryer) (model.User, error) {
@@ -117,30 +109,23 @@ func (ur *UserRepositoryImpl) GetByID(user_id int, db Queryer) (model.User, erro
 		return model.User{}, fmt.Errorf("failed to scan row: %w", err)
 	}
 
-	var friends []model.User
-	friends, err := ur.GetFriendsByID(user_id, db)
+	friendIDs, err := ur.GetFriendsByID(user_id, db)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return model.User{}, fmt.Errorf("user_id %d is not found", user_id)
+			user.FriendList = nil // return model.User{}, sql.ErrNoRows
 		}
 		return model.User{}, fmt.Errorf("failed to get friends: %w", err)
 	}
-	for _, friend := range friends {
-		user.FriendList = append(user.FriendList, friend.UserID)
-	}
+	user.FriendList = friendIDs
 
-	var blocked []model.User
-	blocked, err = ur.GetBlockedUsersByID(user_id, db)
+	blockedIDs, err := ur.GetBlockUsersByID(user_id, db)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return model.User{}, fmt.Errorf("user_id %d is not found", user_id)
+			user.BlockList = nil // return model.User{}, sql.ErrNoRows
 		}
 		return model.User{}, fmt.Errorf("failed to get blocked users: %w", err)
 	}
-
-	for _, blockedUser := range blocked {
-		user.BlockList = append(user.BlockList, blockedUser.UserID)
-	}
+	user.BlockList = blockedIDs
 
 	return user, nil
 }
