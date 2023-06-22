@@ -2,13 +2,13 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"problem1/model"
-	"problem1/types"
 )
 
 type UserRepository interface {
-	GetFriendsByID(user_id int, params types.PagenationParams, db Queryer) ([]model.User, error)
+	GetFriendsByID(user_id int, db Queryer) ([]model.User, error)
 	GetBlockedUsersByID(user_id int, db Queryer) ([]model.User, error)
 	GetByID(user_id int, db Queryer) (model.User, error)
 	// GetFriendNames(ids []string) ([]string, error)
@@ -20,7 +20,7 @@ func NewUserRepository() *UserRepositoryImpl {
 	return &UserRepositoryImpl{}
 }
 
-func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, params types.PagenationParams, db Queryer) ([]model.User, error) {
+func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, db Queryer) ([]model.User, error) {
 	query := `
 		SELECT user_id, name
 		FROM users
@@ -38,9 +38,12 @@ func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, params types.Pagenatio
 
 	// params.Limit = 2
 
-	rows, err := db.Query(query, user_id, user_id, params.Limit, params.Offset)
+	rows, err := db.Query(query, user_id, user_id)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, sql.ErrNoRows
+		}
+		panic(err)
 	}
 	defer rows.Close()
 
@@ -48,7 +51,10 @@ func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, params types.Pagenatio
 	for rows.Next() {
 		var friend model.User
 		if err := rows.Scan(&friend.UserID, &friend.Name); err != nil {
-			panic(err)
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, sql.ErrNoRows
+			}
+			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		friends = append(friends, friend)
 	}
@@ -68,7 +74,10 @@ func (ur *UserRepositoryImpl) GetBlockedUsersByID(user_id int, db Queryer) ([]mo
 	for rows.Next() {
 		var user1ID, user2ID int
 		if err := rows.Scan(&user1ID, &user2ID); err != nil {
-			panic(err)
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, sql.ErrNoRows
+			}
+			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		if user1ID != user_id {
 			blockedIDs = append(blockedIDs, user1ID)
@@ -82,7 +91,11 @@ func (ur *UserRepositoryImpl) GetBlockedUsersByID(user_id int, db Queryer) ([]mo
 	for _, blockedID := range blockedIDs {
 		blockedUser, err := ur.GetByID(blockedID, db)
 		if err != nil {
-			panic(err)
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, sql.ErrNoRows
+			} else {
+				return nil, fmt.Errorf("failed to get blocked user: %w", err)
+			}
 		}
 		blocked = append(blocked, blockedUser)
 	}
@@ -96,11 +109,39 @@ func (ur *UserRepositoryImpl) GetByID(user_id int, db Queryer) (model.User, erro
 
 	var user model.User
 	if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
-		if err == sql.ErrNoRows {
-			panic(fmt.Sprintf("user_id %d not found", user_id))
+		if errors.Is(err, sql.ErrNoRows) {
+			// 存在しないユーザーIDが指定された場合はpanic
+			// これの代わりにエラーを返した方が良いかも
+			return model.User{}, sql.ErrNoRows
 		}
-		panic(err)
+		return model.User{}, fmt.Errorf("failed to scan row: %w", err)
 	}
+
+	var friends []model.User
+	friends, err := ur.GetFriendsByID(user_id, db)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.User{}, fmt.Errorf("user_id %d is not found", user_id)
+		}
+		return model.User{}, fmt.Errorf("failed to get friends: %w", err)
+	}
+	for _, friend := range friends {
+		user.FriendList = append(user.FriendList, friend.UserID)
+	}
+
+	var blocked []model.User
+	blocked, err = ur.GetBlockedUsersByID(user_id, db)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.User{}, fmt.Errorf("user_id %d is not found", user_id)
+		}
+		return model.User{}, fmt.Errorf("failed to get blocked users: %w", err)
+	}
+
+	for _, blockedUser := range blocked {
+		user.BlockList = append(user.BlockList, blockedUser.UserID)
+	}
+
 	return user, nil
 }
 

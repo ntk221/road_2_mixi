@@ -35,10 +35,24 @@ func TestUserRepository_GetByID(t *testing.T) {
 	})
 
 	// テスト用のデータを作成
-	testUser := model.User{ID: 1, UserID: 1, Name: "Test User"}
+	testUser := model.User{ID: 1, UserID: 1, Name: "Test User", FriendList: []int{2, 3}, BlockList: []int{4, 5}}
 	_, err = tx.Exec(`
 		INSERT INTO users (id, user_id, name) VALUES (?, ?, ?);
 	`, testUser.ID, testUser.UserID, testUser.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = tx.Exec(`
+		INSERT INTO friend_links (user1_id, user2_id) VALUES (?, ?), (?, ?);
+	`, testUser.UserID, testUser.FriendList[0], testUser.UserID, testUser.FriendList[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = tx.Exec(`
+		INSERT INTO block_list (user1_id, user2_id) VALUES (?, ?), (?, ?);
+	`, testUser.UserID, testUser.BlockList[0], testUser.UserID, testUser.BlockList[1])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,6 +80,7 @@ func TestUserRepository_GetByID(t *testing.T) {
 	}
 
 	// 存在しないユーザーの取得をテスト
+	// 存在しないユーザーに関して即座にpanicはどうなんだろう
 	/*notFoundUserID := "notfounduser"
 	_, err = sut.GetByID(notFoundUserID)
 	if err == nil || err.Error() != "user not found" {
