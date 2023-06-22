@@ -8,7 +8,8 @@ import (
 	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 )
 
 func main() {
@@ -21,8 +22,10 @@ func main() {
 	defer db.Close()
 
 	e := echo.New()
+	e.Use(middleware.Recover())
 
 	e.GET("/", func(c echo.Context) error {
+		panic("TESTT")
 		return c.String(http.StatusOK, "minimal_sns!")
 	})
 

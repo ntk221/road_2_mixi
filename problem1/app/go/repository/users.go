@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"problem1/model"
 	"problem1/types"
-	"strings"
 )
 
 type UserRepository interface {
@@ -49,7 +48,7 @@ func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, params types.Pagenatio
 	for rows.Next() {
 		var friend model.User
 		if err := rows.Scan(&friend.UserID, &friend.Name); err != nil {
-			return nil, err
+			panic(err)
 		}
 		friends = append(friends, friend)
 	}
@@ -61,7 +60,7 @@ func (ur *UserRepositoryImpl) GetBlockedUsersByID(user_id int, db Queryer) ([]mo
 	query := `SELECT user1_id, user2_id FROM block_list WHERE user1_id = ? OR user2_id = ?`
 	rows, err := db.Query(query, user_id, user_id)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	defer rows.Close()
 
@@ -69,7 +68,7 @@ func (ur *UserRepositoryImpl) GetBlockedUsersByID(user_id int, db Queryer) ([]mo
 	for rows.Next() {
 		var user1ID, user2ID int
 		if err := rows.Scan(&user1ID, &user2ID); err != nil {
-			return nil, err
+			panic(err)
 		}
 		if user1ID != user_id {
 			blockedIDs = append(blockedIDs, user1ID)
@@ -83,7 +82,7 @@ func (ur *UserRepositoryImpl) GetBlockedUsersByID(user_id int, db Queryer) ([]mo
 	for _, blockedID := range blockedIDs {
 		blockedUser, err := ur.GetByID(blockedID, db)
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 		blocked = append(blocked, blockedUser)
 	}
@@ -98,17 +97,17 @@ func (ur *UserRepositoryImpl) GetByID(user_id int, db Queryer) (model.User, erro
 	var user model.User
 	if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
 		if err == sql.ErrNoRows {
-			return model.User{}, fmt.Errorf("user not found")
+			panic(fmt.Sprintf("user_id %d not found", user_id))
 		}
-		return model.User{}, err
+		panic(err)
 	}
 	return user, nil
 }
 
-func replacePlaceholders(query string, argCount int) string {
+/*func replacePlaceholders(query string, argCount int) string {
 	placeholders := make([]string, argCount)
 	for i := 0; i < argCount; i++ {
 		placeholders[i] = "?"
 	}
 	return strings.Replace(query, "?", strings.Join(placeholders, ","), -1)
-}
+}*/

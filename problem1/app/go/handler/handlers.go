@@ -8,7 +8,7 @@ import (
 	"problem1/types"
 	"strconv"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo"
 )
 
 func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
