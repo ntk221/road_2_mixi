@@ -46,8 +46,9 @@ func (us UserServiceImpl) GetFriendList(user_id int) ([]domain.User, error) {
 func (us UserServiceImpl) filterWithBlockLink(user domain.User, friends []domain.User) ([]domain.User, error) {
 	filteredFriends := make([]domain.User, 0)
 
+	blockedIDs := user.GetBlockList()
 	for _, friend := range friends {
-		if !contains(user.BlockList, friend.UserID) {
+		if !contains(blockedIDs, friend.UserID) {
 			filteredFriends = append(filteredFriends, friend)
 		}
 	}
@@ -58,10 +59,7 @@ func (us UserServiceImpl) filterWithBlockLink(user domain.User, friends []domain
 func (us UserServiceImpl) getRealFriends(user domain.User) ([]domain.User, error) {
 	realFriends := make([]domain.User, 0)
 
-	friendIDs, err := user.GetFriendList()
-	if err != nil {
-		return nil, err
-	}
+	friendIDs := user.GetFriendList()
 
 	for _, friendID := range friendIDs {
 		friend, err := us.ur.GetByID(friendID, us.db)

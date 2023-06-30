@@ -34,9 +34,5 @@ func main() {
 
 	e.GET("/get_friend_of_friend_list_paging", handler.GetFriendOfFriendListPagingHandler(db))
 
-	e.GET("/health", func(c echo.Context) error {
-		return c.String(http.StatusOK, "OK")
-	})
-
 	e.Logger.Fatal(e.Start(":" + strconv.Itoa(conf.Server.Port)))
 }
