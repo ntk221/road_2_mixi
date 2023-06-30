@@ -1,9 +1,9 @@
-package repository
+package infra
 
 import (
 	"database/sql"
 	"problem1/configs"
-	"problem1/model"
+	"problem1/domain"
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -35,7 +35,7 @@ func TestUserRepository_GetByID(t *testing.T) {
 	})
 
 	// テスト用のデータを作成
-	testUser := model.User{ID: 1, UserID: 1, Name: "Test User", FriendList: []int{2, 3}, BlockList: []int{4, 5}}
+	testUser := domain.User{ID: 1, UserID: 1, Name: "Test User", FriendList: []int{2, 3}, BlockList: []int{4, 5}}
 	_, err = tx.Exec(`
 		INSERT INTO users (id, user_id, name) VALUES (?, ?, ?);
 	`, testUser.ID, testUser.UserID, testUser.Name)
@@ -117,7 +117,7 @@ func TestUserRepository_GetFriendsByID(t *testing.T) {
 	})
 
 	// テスト用のデータを作成
-	testUsers := []model.User{
+	testUsers := []domain.User{
 		{ID: 1, UserID: 1, Name: "Test User1"},
 		{ID: 2, UserID: 2, Name: "Test User2"},
 		{ID: 3, UserID: 3, Name: "Test User3"},
@@ -143,7 +143,7 @@ func TestUserRepository_GetFriendsByID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testLinks := []model.FriendLink{
+	testLinks := []domain.FriendLink{
 		{ID: 1, User1ID: 1, User2ID: 2},
 		{ID: 2, User1ID: 1, User2ID: 3},
 		{ID: 3, User1ID: 2, User2ID: 1},

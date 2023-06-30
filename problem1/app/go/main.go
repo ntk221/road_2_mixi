@@ -25,7 +25,6 @@ func main() {
 	e.Use(middleware.Recover())
 
 	e.GET("/", func(c echo.Context) error {
-		panic("TESTT")
 		return c.String(http.StatusOK, "minimal_sns!")
 	})
 

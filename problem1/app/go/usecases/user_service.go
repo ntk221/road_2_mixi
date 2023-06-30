@@ -1,46 +1,42 @@
-package service
+package usecases
 
 import (
 	"database/sql"
-	"fmt"
-	"problem1/model"
-	"problem1/repository"
+	"problem1/domain"
+	"problem1/infra"
 )
 
 type UserService interface {
-	GetFriendList(user_id int) ([]model.User, error)
-	GetFriendListFromUsers([]model.User) ([]model.User, error)
+	GetFriendList(user_id int) ([]domain.User, error)
+	GetFriendListFromUsers([]domain.User) ([]domain.User, error)
 	// GetFriendListWithPagenation(user_id int, params types.PagenationParams) ([]model.User, error)
 	// GetFriendListFromUsersWithPagenation([]model.User, types.PagenationParams) ([]model.User, error)
 }
 
 type UserServiceImpl struct {
 	db *sql.DB
-	ur *repository.UserRepositoryImpl
+	ur *infra.UserRepositoryImpl
 }
 
-func NewUserService(db *sql.DB, ur *repository.UserRepositoryImpl) UserService {
+func NewUserService(db *sql.DB, ur *infra.UserRepositoryImpl) UserService {
 	return &UserServiceImpl{
 		db: db,
 		ur: ur,
 	}
 }
 
-func (us UserServiceImpl) GetFriendList(user_id int) ([]model.User, error) {
+func (us UserServiceImpl) GetFriendList(user_id int) ([]domain.User, error) {
 	user, err := us.ur.GetByID(user_id, us.db)
 	if err != nil {
 		return nil, err
 	}
 
-	// user が 友人だと思っているだけではなく，相手もuserを友人だと思っていることが条件
 	realFriends, err := us.getRealFriends(user)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println(realFriends)
-
-	filteredFriends, err := us.fileterWithBlockLink(user, realFriends)
+	filteredFriends, err := us.filterWithBlockLink(user, realFriends)
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +44,8 @@ func (us UserServiceImpl) GetFriendList(user_id int) ([]model.User, error) {
 	return filteredFriends, nil
 }
 
-func (us UserServiceImpl) fileterWithBlockLink(user model.User, friends []model.User) ([]model.User, error) {
-	filteredFriends := make([]model.User, 0)
+func (us UserServiceImpl) filterWithBlockLink(user domain.User, friends []domain.User) ([]domain.User, error) {
+	filteredFriends := make([]domain.User, 0)
 
 	for _, friend := range friends {
 		if !contains(user.BlockList, friend.UserID) {
@@ -60,17 +56,19 @@ func (us UserServiceImpl) fileterWithBlockLink(user model.User, friends []model.
 	return filteredFriends, nil
 }
 
-func (us UserServiceImpl) getRealFriends(user model.User) ([]model.User, error) {
-	realFriends := make([]model.User, 0)
+func (us UserServiceImpl) getRealFriends(user domain.User) ([]domain.User, error) {
+	realFriends := make([]domain.User, 0)
 
-	for _, friendID := range user.FriendList {
+	friendIDs, err := user.GetFriendList()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, friendID := range friendIDs {
 		friend, err := us.ur.GetByID(friendID, us.db)
 		if err != nil {
 			return nil, err
 		}
-
-		fmt.Println(friend)
-
 		if contains(friend.FriendList, user.UserID) && !contains(user.BlockList, friend.UserID) {
 			realFriends = append(realFriends, friend)
 		}
@@ -79,8 +77,8 @@ func (us UserServiceImpl) getRealFriends(user model.User) ([]model.User, error) 
 	return realFriends, nil
 }
 
-func (us UserServiceImpl) GetFriendListFromUsers(friendList []model.User) ([]model.User, error) {
-	fofs := make([]model.User, 0)
+func (us UserServiceImpl) GetFriendListFromUsers(friendList []domain.User) ([]domain.User, error) {
+	fofs := make([]domain.User, 0)
 
 	for _, friend := range friendList {
 		fof, err := us.GetFriendList(friend.UserID)

@@ -3,10 +3,10 @@ package handler
 import (
 	"database/sql"
 	"net/http"
-	"problem1/model"
-	"problem1/repository"
-	service "problem1/services"
+	"problem1/domain"
+	"problem1/infra"
 	"problem1/types"
+	"problem1/usecases"
 	"strconv"
 
 	"github.com/labstack/echo"
@@ -19,8 +19,8 @@ func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 			c.JSON(http.StatusBadRequest, err)
 			return nil
 		}
-		ur := repository.NewUserRepository()
-		us := service.NewUserService(db, ur)
+		ur := infra.NewUserRepository()
+		us := usecases.NewUserService(db, ur)
 
 		filteredFriends, err := us.GetFriendList(id)
 		if err != nil {
@@ -47,8 +47,8 @@ func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
 			return nil
 		}
 
-		ur := repository.NewUserRepository()
-		us := service.NewUserService(db, ur)
+		ur := infra.NewUserRepository()
+		us := usecases.NewUserService(db, ur)
 
 		friendList, err := us.GetFriendList(id)
 		if err != nil {
@@ -70,7 +70,7 @@ func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
 	}
 }
 
-func get_names(fof []model.User) ([]string, error) {
+func get_names(fof []domain.User) ([]string, error) {
 	fofNames := make([]string, 0)
 	for _, v := range fof {
 		fofNames = append(fofNames, v.Name)
@@ -144,8 +144,8 @@ func GetFriendOfFriendListPagingHandler(db *sql.DB) echo.HandlerFunc {
 			return nil
 		}
 
-		ur := repository.NewUserRepository()
-		us := service.NewUserService(db, ur)
+		ur := infra.NewUserRepository()
+		us := usecases.NewUserService(db, ur)
 
 		friendList, err := us.GetFriendList(id)
 		if err != nil {
@@ -173,9 +173,9 @@ func GetFriendOfFriendListPagingHandler(db *sql.DB) echo.HandlerFunc {
 	}
 }
 
-func pagenate(params types.PagenationParams, users []model.User) []model.User {
+func pagenate(params types.PagenationParams, users []domain.User) []domain.User {
 	if params.Offset > len(users) {
-		return make([]model.User, 0)
+		return make([]domain.User, 0)
 	}
 
 	if params.Offset+params.Limit > len(users) {

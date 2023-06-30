@@ -1,16 +1,16 @@
-package repository
+package infra
 
 import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"problem1/model"
+	"problem1/domain"
 )
 
 type UserRepository interface {
-	GetFriendsByID(user_id int, db Queryer) ([]model.User, error)
-	GetBlockUsersByID(user_id int, db Queryer) ([]model.User, error)
-	GetByID(user_id int, db Queryer) (model.User, error)
+	GetFriendsByID(user_id int, db Queryer) ([]domain.User, error)
+	GetBlockUsersByID(user_id int, db Queryer) ([]domain.User, error)
+	GetByID(user_id int, db Queryer) (domain.User, error)
 	// GetFriendNames(ids []string) ([]string, error)
 }
 
@@ -50,7 +50,7 @@ func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, db Queryer) ([]int, er
 
 	friends := make([]int, 0)
 	for rows.Next() {
-		var friend model.User
+		var friend domain.User
 		if err := rows.Scan(&friend.UserID); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil, sql.ErrNoRows
@@ -95,18 +95,18 @@ func (ur *UserRepositoryImpl) GetBlockUsersByID(user_id int, db Queryer) ([]int,
 	return blockIDs, nil
 }
 
-func (ur *UserRepositoryImpl) GetByID(user_id int, db Queryer) (model.User, error) {
+func (ur *UserRepositoryImpl) GetByID(user_id int, db Queryer) (domain.User, error) {
 	query := `SELECT id, user_id, name FROM users WHERE user_id = ?`
 	row := db.QueryRow(query, user_id)
 
-	var user model.User
+	var user domain.User
 	if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			// 存在しないユーザーIDが指定された場合はpanic
 			// これの代わりにエラーを返した方が良いかも
-			return model.User{}, sql.ErrNoRows
+			return domain.User{}, sql.ErrNoRows
 		}
-		return model.User{}, fmt.Errorf("failed to scan row: %w", err)
+		return domain.User{}, fmt.Errorf("failed to scan row: %w", err)
 	}
 
 	friendIDs, err := ur.GetFriendsByID(user_id, db)
@@ -114,7 +114,7 @@ func (ur *UserRepositoryImpl) GetByID(user_id int, db Queryer) (model.User, erro
 		if errors.Is(err, sql.ErrNoRows) {
 			user.FriendList = nil // return model.User{}, sql.ErrNoRows
 		}
-		return model.User{}, fmt.Errorf("failed to get friends: %w", err)
+		return domain.User{}, fmt.Errorf("failed to get friends: %w", err)
 	}
 	user.FriendList = friendIDs
 
@@ -123,7 +123,7 @@ func (ur *UserRepositoryImpl) GetByID(user_id int, db Queryer) (model.User, erro
 		if errors.Is(err, sql.ErrNoRows) {
 			user.BlockList = nil // return model.User{}, sql.ErrNoRows
 		}
-		return model.User{}, fmt.Errorf("failed to get blocked users: %w", err)
+		return domain.User{}, fmt.Errorf("failed to get blocked users: %w", err)
 	}
 	user.BlockList = blockedIDs
 
