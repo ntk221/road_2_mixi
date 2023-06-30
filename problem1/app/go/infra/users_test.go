@@ -182,7 +182,7 @@ func TestUserRepository_GetFriendsByID(t *testing.T) {
 
 	sut := NewUserRepository()
 
-	got, err := sut.GetFriendsByID(testUsers[0].UserID, tx)
+	got, err := sut.getFriendsByID(testUsers[0].UserID, tx)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,6 +4,12 @@ import (
 	"database/sql"
 )
 
+type Database interface {
+	Beginner
+	Preparer
+	Queryer
+	Executer
+}
 type Beginner interface {
 	Begin() (*sql.Tx, error)
 }

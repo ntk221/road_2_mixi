@@ -22,7 +22,7 @@ func NewUserRepository() *UserRepositoryImpl {
 
 // FriendLinkテーブルから友達のIDを取得
 // 一方が友達になっている場合には，友人リストに追加している
-func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, db Queryer) ([]int, error) {
+func (ur *UserRepositoryImpl) getFriendsByID(user_id int, db Queryer) ([]int, error) {
 	query := `
 		SELECT user_id
 		FROM users
@@ -64,7 +64,7 @@ func (ur *UserRepositoryImpl) GetFriendsByID(user_id int, db Queryer) ([]int, er
 }
 
 // ブロックしているユーザーのIDを取得
-func (ur *UserRepositoryImpl) GetBlockUsersByID(user_id int, db Queryer) ([]int, error) {
+func (ur *UserRepositoryImpl) getBlockUsersByID(user_id int, db Queryer) ([]int, error) {
 	query := `SELECT user1_id, user2_id FROM block_list WHERE user1_id = ? OR user2_id = ?`
 	rows, err := db.Query(query, user_id, user_id)
 	if err != nil {
@@ -109,7 +109,7 @@ func (ur *UserRepositoryImpl) GetByID(user_id int, db Queryer) (domain.User, err
 		return domain.User{}, fmt.Errorf("failed to scan row: %w", err)
 	}
 
-	friendIDs, err := ur.GetFriendsByID(user_id, db)
+	friendIDs, err := ur.getFriendsByID(user_id, db)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			user.FriendList = nil // return model.User{}, sql.ErrNoRows
@@ -118,7 +118,7 @@ func (ur *UserRepositoryImpl) GetByID(user_id int, db Queryer) (domain.User, err
 	}
 	user.FriendList = friendIDs
 
-	blockedIDs, err := ur.GetBlockUsersByID(user_id, db)
+	blockedIDs, err := ur.getBlockUsersByID(user_id, db)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			user.BlockList = nil // return model.User{}, sql.ErrNoRows
