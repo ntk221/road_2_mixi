@@ -14,7 +14,7 @@ type UserService interface {
 
 type UserServiceImpl struct {
 	db Database
-	ur UserGetter
+	ur UserRepository
 }
 
 func NewUserService(db *sql.DB, ur UserGetter) UserService {

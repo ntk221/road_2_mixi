@@ -5,6 +5,10 @@ import (
 	"problem1/domain"
 )
 
+type UserRepository interface {
+	UserGetter
+}
+
 type UserGetter interface {
 	GetByID(id int, db Queryer) (domain.User, error)
 }
