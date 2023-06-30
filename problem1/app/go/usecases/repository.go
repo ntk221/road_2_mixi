@@ -1,8 +1,13 @@
-package infra
+package usecases
 
 import (
 	"database/sql"
+	"problem1/domain"
 )
+
+type UserGetter interface {
+	GetByID(id int, db Queryer) (domain.User, error)
+}
 
 type Database interface {
 	Beginner
@@ -36,6 +41,3 @@ var (
 	_ Executer = (*sql.DB)(nil)
 	_ Executer = (*sql.Tx)(nil)
 )
-
-type Repository interface {
-}

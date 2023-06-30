@@ -5,16 +5,21 @@ import (
 	"errors"
 	"fmt"
 	"problem1/domain"
+	"problem1/usecases"
 )
 
+/*
 type UserRepository interface {
-	GetFriendsByID(user_id int, db Queryer) ([]domain.User, error)
-	GetBlockUsersByID(user_id int, db Queryer) ([]domain.User, error)
+	// GetFriendsByID(user_id int, db Queryer) ([]domain.User, error)
+	// GetBlockUsersByID(user_id int, db Queryer) ([]domain.User, error)
 	GetByID(user_id int, db Queryer) (domain.User, error)
 	// GetFriendNames(ids []string) ([]string, error)
 }
+*/
 
-type UserRepositoryImpl struct{}
+type UserRepositoryImpl struct {
+	usecases.UserGetter
+}
 
 func NewUserRepository() *UserRepositoryImpl {
 	return &UserRepositoryImpl{}
@@ -22,7 +27,7 @@ func NewUserRepository() *UserRepositoryImpl {
 
 // FriendLinkテーブルから友達のIDを取得
 // 一方が友達になっている場合には，友人リストに追加している
-func (ur *UserRepositoryImpl) getFriendsByID(user_id int, db Queryer) ([]int, error) {
+func (ur *UserRepositoryImpl) getFriendsByID(user_id int, db usecases.Queryer) ([]int, error) {
 	query := `
 		SELECT user_id
 		FROM users
@@ -64,7 +69,7 @@ func (ur *UserRepositoryImpl) getFriendsByID(user_id int, db Queryer) ([]int, er
 }
 
 // ブロックしているユーザーのIDを取得
-func (ur *UserRepositoryImpl) getBlockUsersByID(user_id int, db Queryer) ([]int, error) {
+func (ur *UserRepositoryImpl) getBlockUsersByID(user_id int, db usecases.Queryer) ([]int, error) {
 	query := `SELECT user1_id, user2_id FROM block_list WHERE user1_id = ? OR user2_id = ?`
 	rows, err := db.Query(query, user_id, user_id)
 	if err != nil {
@@ -95,7 +100,7 @@ func (ur *UserRepositoryImpl) getBlockUsersByID(user_id int, db Queryer) ([]int,
 	return blockIDs, nil
 }
 
-func (ur *UserRepositoryImpl) GetByID(user_id int, db Queryer) (domain.User, error) {
+func (ur *UserRepositoryImpl) GetByID(user_id int, db usecases.Queryer) (domain.User, error) {
 	query := `SELECT id, user_id, name FROM users WHERE user_id = ?`
 	row := db.QueryRow(query, user_id)
 

@@ -3,7 +3,6 @@ package usecases
 import (
 	"database/sql"
 	"problem1/domain"
-	"problem1/infra"
 )
 
 type UserService interface {
@@ -14,11 +13,11 @@ type UserService interface {
 }
 
 type UserServiceImpl struct {
-	db infra.Database
+	db Database
 	ur UserGetter
 }
 
-func NewUserService(db *sql.DB, ur *infra.UserRepositoryImpl) UserService {
+func NewUserService(db *sql.DB, ur UserGetter) UserService {
 	return &UserServiceImpl{
 		db: db,
 		ur: ur,
