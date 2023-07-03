@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"database/sql"
+	"log"
 	"problem1/domain"
 )
 
@@ -13,7 +14,7 @@ type UserService interface {
 }
 
 type UserServiceImpl struct {
-	db Database
+	db domain.Database
 	ur UserRepository
 }
 
@@ -30,15 +31,21 @@ func (us UserServiceImpl) GetFriendList(user_id int) ([]domain.User, error) {
 		return nil, err
 	}
 
+	log.Printf("user: %v", user)
+
 	realFriends, err := us.getRealFriends(user)
 	if err != nil {
 		return nil, err
 	}
 
+	log.Printf("realFriends: %v", realFriends)
+
 	filteredFriends, err := us.filterWithBlockLink(user, realFriends)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf("filteredFriends: %v", filteredFriends)
 
 	return filteredFriends, nil
 }
