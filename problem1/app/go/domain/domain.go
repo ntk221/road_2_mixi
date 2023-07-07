@@ -25,5 +25,18 @@ func (u User) GetFriendList() []int {
 }
 
 func (u User) GetBlockList() []int {
-	return u.FriendList
+	return u.BlockList
+}
+
+func (u User) IsBlocked(user User) bool {
+	return contains(user.BlockList, u.UserID)
+}
+
+func contains(list []int, target int) bool {
+	for _, v := range list {
+		if v == target {
+			return true
+		}
+	}
+	return false
 }

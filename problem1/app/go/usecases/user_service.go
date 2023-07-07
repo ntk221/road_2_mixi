@@ -1,8 +1,6 @@
 package usecases
 
 import (
-	"database/sql"
-	"log"
 	"problem1/domain"
 )
 
@@ -18,7 +16,7 @@ type UserServiceImpl struct {
 	ur UserRepository
 }
 
-func NewUserService(db *sql.DB, ur UserGetter) UserService {
+func NewUserService(db domain.Database, ur UserGetter) UserService {
 	return &UserServiceImpl{
 		db: db,
 		ur: ur,
@@ -31,21 +29,23 @@ func (us UserServiceImpl) GetFriendList(user_id int) ([]domain.User, error) {
 		return nil, err
 	}
 
-	log.Printf("user: %v", user)
+	friends := make([]domain.User, 0)
+	friendIDs := user.GetFriendList()
+	for _, friendID := range friendIDs {
+		friend, err := us.ur.GetByID(friendID, us.db)
+		if err != nil {
+			return nil, err
+		}
+		if friend.IsBlocked(user) || user.IsBlocked(friend) {
+			continue
+		}
+		friends = append(friends, friend)
+	}
 
-	realFriends, err := us.getRealFriends(user)
+	filteredFriends, err := us.filterWithBlockLink(user, friends)
 	if err != nil {
 		return nil, err
 	}
-
-	log.Printf("realFriends: %v", realFriends)
-
-	filteredFriends, err := us.filterWithBlockLink(user, realFriends)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("filteredFriends: %v", filteredFriends)
 
 	return filteredFriends, nil
 }
@@ -61,24 +61,6 @@ func (us UserServiceImpl) filterWithBlockLink(user domain.User, friends []domain
 	}
 
 	return filteredFriends, nil
-}
-
-func (us UserServiceImpl) getRealFriends(user domain.User) ([]domain.User, error) {
-	realFriends := make([]domain.User, 0)
-
-	friendIDs := user.GetFriendList()
-
-	for _, friendID := range friendIDs {
-		friend, err := us.ur.GetByID(friendID, us.db)
-		if err != nil {
-			return nil, err
-		}
-		if contains(friend.FriendList, user.UserID) && !contains(user.BlockList, friend.UserID) {
-			realFriends = append(realFriends, friend)
-		}
-	}
-
-	return realFriends, nil
 }
 
 func (us UserServiceImpl) GetFriendListFromUsers(friendList []domain.User) ([]domain.User, error) {

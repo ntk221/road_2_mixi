@@ -8,15 +8,6 @@ import (
 	"problem1/usecases"
 )
 
-/*
-type UserRepository interface {
-	// GetFriendsByID(user_id int, db Queryer) ([]domain.User, error)
-	// GetBlockUsersByID(user_id int, db Queryer) ([]domain.User, error)
-	GetByID(user_id int, db Queryer) (domain.User, error)
-	// GetFriendNames(ids []string) ([]string, error)
-}
-*/
-
 type UserRepositoryImpl struct {
 	usecases.UserGetter
 }
@@ -25,8 +16,8 @@ func NewUserRepository() *UserRepositoryImpl {
 	return &UserRepositoryImpl{}
 }
 
-// FriendLinkテーブルから友達のIDを取得
-// 一方が友達になっている場合には，友人リストに追加している
+// FriendLinkによって，繋がっているユーザーのIDを取得する
+// 方向性は考慮しない
 func (ur *UserRepositoryImpl) getFriendsByID(user_id int, db domain.Queryer) ([]int, error) {
 	query := `
 		SELECT user_id
@@ -68,7 +59,8 @@ func (ur *UserRepositoryImpl) getFriendsByID(user_id int, db domain.Queryer) ([]
 	return friends, nil
 }
 
-// ブロックしているユーザーのIDを取得
+// BlockListによって繋がっている，ユーザーのIDを取得する
+// 方向性は考慮しない
 func (ur *UserRepositoryImpl) getBlockUsersByID(user_id int, db domain.Queryer) ([]int, error) {
 	query := `SELECT user1_id, user2_id FROM block_list WHERE user1_id = ? OR user2_id = ?`
 	rows, err := db.Query(query, user_id, user_id)
