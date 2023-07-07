@@ -42,25 +42,7 @@ func (us UserServiceImpl) GetFriendList(user_id int) ([]domain.User, error) {
 		friends = append(friends, friend)
 	}
 
-	filteredFriends, err := us.filterWithBlockLink(user, friends)
-	if err != nil {
-		return nil, err
-	}
-
-	return filteredFriends, nil
-}
-
-func (us UserServiceImpl) filterWithBlockLink(user domain.User, friends []domain.User) ([]domain.User, error) {
-	filteredFriends := make([]domain.User, 0)
-
-	blockedIDs := user.GetBlockList()
-	for _, friend := range friends {
-		if !contains(blockedIDs, friend.UserID) {
-			filteredFriends = append(filteredFriends, friend)
-		}
-	}
-
-	return filteredFriends, nil
+	return friends, nil
 }
 
 func (us UserServiceImpl) GetFriendListFromUsers(friendList []domain.User) ([]domain.User, error) {
@@ -76,13 +58,4 @@ func (us UserServiceImpl) GetFriendListFromUsers(friendList []domain.User) ([]do
 
 	// fofs = pagenate(params, fofs)
 	return fofs, nil
-}
-
-func contains(slice []int, value int) bool {
-	for _, item := range slice {
-		if item == value {
-			return true
-		}
-	}
-	return false
 }
