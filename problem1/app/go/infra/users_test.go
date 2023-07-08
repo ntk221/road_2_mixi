@@ -1,6 +1,8 @@
 package infra
 
 import (
+	"database/sql"
+	"fmt"
 	"log"
 	"problem1/domain"
 	"problem1/testutils"
@@ -9,12 +11,30 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func TestUserRepository_GetByID(t *testing.T) {
-	tx, err := testutils.OpenDBForTest(t).Begin()
-	t.Cleanup(func() { _ = tx.Rollback() })
+type txAdmin struct {
+	*sql.DB
+}
+
+func NewTxAdmin(db *sql.DB) *txAdmin {
+	return &txAdmin{db}
+}
+
+// Transaction for test
+func (ta *txAdmin) Transaction(update func() (err error)) error {
+	tx, err := ta.Begin()
 	if err != nil {
-		t.Fatal(err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
+	defer tx.Rollback()
+	if err := update(); err != nil {
+		return fmt.Errorf("transaction query failed %w", err)
+	}
+	return nil
+}
+
+func TestUserRepository_GetByID(t *testing.T) {
+	db := testutils.OpenDBForTest(t)
+	ta := NewTxAdmin(db)
 
 	// testUsers := testutils.PrepareTestUsers(t, tx)
 	// testFriendLink := testutils.PrepareTestFriendLinks(t, tx)
@@ -47,7 +67,7 @@ func TestUserRepository_GetByID(t *testing.T) {
 
 	sut := NewUserRepository()
 
-	ret, err := sut.GetByID(testUsers[0].UserID, tx)
+	ret, err := sut.GetByID(testUsers[0].UserID, ta)
 	if err != nil {
 		t.Fatal(err)
 	}

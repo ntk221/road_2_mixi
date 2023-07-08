@@ -12,11 +12,11 @@ type UserService interface {
 }
 
 type UserServiceImpl struct {
-	db domain.Database
+	db domain.QueryerTx
 	ur UserRepository
 }
 
-func NewUserService(db domain.Database, ur UserGetter) UserService {
+func NewUserService(db domain.QueryerTx, ur UserGetter) UserService {
 	return &UserServiceImpl{
 		db: db,
 		ur: ur,

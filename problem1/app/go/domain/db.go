@@ -11,6 +11,16 @@ type Database interface {
 	Executer
 }
 
+type TxWrapper interface {
+	Beginner
+	Transaction(queryFunc func() error) error
+}
+
+type QueryerTx interface {
+	Queryer
+	TxWrapper
+}
+
 type Beginner interface {
 	Begin() (*sql.Tx, error)
 }

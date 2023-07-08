@@ -20,7 +20,8 @@ func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 			return nil
 		}
 		ur := infra.NewUserRepository()
-		us := usecases.NewUserService(db, ur)
+		txWrapper := NewTxAdmin(db)
+		us := usecases.NewUserService(txWrapper, ur)
 
 		filteredFriends, err := us.GetFriendList(id)
 		if err != nil {
@@ -48,7 +49,8 @@ func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
 		}
 
 		ur := infra.NewUserRepository()
-		us := usecases.NewUserService(db, ur)
+		txWrapper := NewTxAdmin(db)
+		us := usecases.NewUserService(txWrapper, ur)
 
 		friendList, err := us.GetFriendList(id)
 		if err != nil {
@@ -145,7 +147,8 @@ func GetFriendOfFriendListPagingHandler(db *sql.DB) echo.HandlerFunc {
 		}
 
 		ur := infra.NewUserRepository()
-		us := usecases.NewUserService(db, ur)
+		txWrapper := NewTxAdmin(db)
+		us := usecases.NewUserService(txWrapper, ur)
 
 		friendList, err := us.GetFriendList(id)
 		if err != nil {

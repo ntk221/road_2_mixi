@@ -92,37 +92,44 @@ func (ur *UserRepositoryImpl) getBlockUsersByID(user_id int, db domain.Queryer) 
 	return blockIDs, nil
 }
 
-func (ur *UserRepositoryImpl) GetByID(user_id int, db domain.Queryer) (domain.User, error) {
-	query := `SELECT id, user_id, name FROM users WHERE user_id = ?`
-	row := db.QueryRow(query, user_id)
-
+func (ur *UserRepositoryImpl) GetByID(user_id int, db domain.QueryerTx) (domain.User, error) {
 	var user domain.User
-	if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			// 存在しないユーザーIDが指定された場合はpanic
-			// これの代わりにエラーを返した方が良いかも
-			return domain.User{}, sql.ErrNoRows
+
+	queryFuncs := func() error {
+		query := `SELECT id, user_id, name FROM users WHERE user_id = ?`
+		row := db.QueryRow(query, user_id)
+
+		if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return sql.ErrNoRows
+			}
+			return fmt.Errorf("failed to scan row: %w", err)
 		}
-		return domain.User{}, fmt.Errorf("failed to scan row: %w", err)
+
+		friendIDs, err := ur.getFriendsByID(user_id, db)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				user.FriendList = nil
+			}
+			return fmt.Errorf("failed to get friends: %w", err)
+		}
+		user.FriendList = friendIDs
+
+		blockedIDs, err := ur.getBlockUsersByID(user_id, db)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				user.BlockList = nil
+			}
+			return fmt.Errorf("failed to get blocked users: %w", err)
+		}
+		user.BlockList = blockedIDs
+
+		return nil
 	}
 
-	friendIDs, err := ur.getFriendsByID(user_id, db)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			user.FriendList = nil // return model.User{}, sql.ErrNoRows
-		}
-		return domain.User{}, fmt.Errorf("failed to get friends: %w", err)
+	if err := db.Transaction(queryFuncs); err != nil {
+		return domain.User{}, fmt.Errorf("failed to transaction: %w", err)
 	}
-	user.FriendList = friendIDs
-
-	blockedIDs, err := ur.getBlockUsersByID(user_id, db)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			user.BlockList = nil // return model.User{}, sql.ErrNoRows
-		}
-		return domain.User{}, fmt.Errorf("failed to get blocked users: %w", err)
-	}
-	user.BlockList = blockedIDs
 
 	return user, nil
 }

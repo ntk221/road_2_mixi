@@ -10,5 +10,5 @@ type UserRepository interface {
 }
 
 type UserGetter interface {
-	GetByID(id int, db domain.Queryer) (domain.User, error)
+	GetByID(id int, db domain.QueryerTx) (domain.User, error)
 }
