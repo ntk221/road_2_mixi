@@ -1,15 +1,15 @@
-package handler
+package usecases
 
 import (
-	"database/sql"
 	"fmt"
+	"problem1/domain"
 )
 
 type txAdmin struct {
-	*sql.DB
+	domain.Database
 }
 
-func NewTxAdmin(db *sql.DB) *txAdmin {
+func NewTxAdmin(db domain.Database) *txAdmin {
 	return &txAdmin{db}
 }
 

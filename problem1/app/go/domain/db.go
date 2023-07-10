@@ -5,7 +5,7 @@ import (
 )
 
 type Database interface {
-	// Beginner
+	Beginner
 	Preparer
 	Queryer
 	Executer

@@ -20,8 +20,7 @@ func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 			return nil
 		}
 		ur := infra.NewUserRepository()
-		txWrapper := NewTxAdmin(db)
-		us := usecases.NewUserService(txWrapper, ur)
+		us := usecases.NewUserService(db, ur)
 
 		filteredFriends, err := us.GetFriendList(id)
 		if err != nil {
@@ -49,8 +48,7 @@ func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
 		}
 
 		ur := infra.NewUserRepository()
-		txWrapper := NewTxAdmin(db)
-		us := usecases.NewUserService(txWrapper, ur)
+		us := usecases.NewUserService(db, ur)
 
 		friendList, err := us.GetFriendList(id)
 		if err != nil {
@@ -65,6 +63,48 @@ func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
 		filteredNames, err := get_names(fof)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)
+		}
+
+		c.JSON(http.StatusOK, filteredNames)
+		return nil
+	}
+}
+
+func GetFriendOfFriendListPagingHandler(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		id, err := get_id(c)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+			return nil
+		}
+		params, err := get_limit_page(c)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+			return nil
+		}
+
+		ur := infra.NewUserRepository()
+		us := usecases.NewUserService(db, ur)
+
+		friendList, err := us.GetFriendList(id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+			return nil
+		}
+
+		// get friend of friend list pagenated
+		fof, err := us.GetFriendListFromUsers(friendList)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+			return nil
+		}
+
+		fof = pagenate(params, fof)
+
+		filteredNames, err := get_names(fof)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+			return nil
 		}
 
 		c.JSON(http.StatusOK, filteredNames)
@@ -131,49 +171,6 @@ func get_limit_page(c echo.Context) (types.PagenationParams, error) {
 	}
 
 	return params, nil
-}
-
-func GetFriendOfFriendListPagingHandler(db *sql.DB) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		id, err := get_id(c)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return nil
-		}
-		params, err := get_limit_page(c)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return nil
-		}
-
-		ur := infra.NewUserRepository()
-		txWrapper := NewTxAdmin(db)
-		us := usecases.NewUserService(txWrapper, ur)
-
-		friendList, err := us.GetFriendList(id)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return nil
-		}
-
-		// get friend of friend list pagenated
-		fof, err := us.GetFriendListFromUsers(friendList)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return nil
-		}
-
-		fof = pagenate(params, fof)
-
-		filteredNames, err := get_names(fof)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return nil
-		}
-
-		c.JSON(http.StatusOK, filteredNames)
-		return nil
-	}
 }
 
 func pagenate(params types.PagenationParams, users []domain.User) []domain.User {

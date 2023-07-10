@@ -25,20 +25,17 @@ func (ta *txAdmin) Transaction(update func() (err error)) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback() 
 	if err := update(); err != nil {
 		return fmt.Errorf("transaction query failed %w", err)
 	}
+	// Test用なのでCommitしない
 	return nil
 }
 
 func TestUserRepository_GetByID(t *testing.T) {
 	db := testutils.OpenDBForTest(t)
 	ta := NewTxAdmin(db)
-
-	// testUsers := testutils.PrepareTestUsers(t, tx)
-	// testFriendLink := testutils.PrepareTestFriendLinks(t, tx)
-	// testBlockList := testutils.PrepareTestBlockList(t, tx)
 
 	testUsers := []domain.User{
 		{
