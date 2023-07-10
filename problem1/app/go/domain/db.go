@@ -13,7 +13,7 @@ type Database interface {
 
 type TxWrapper interface {
 	Beginner
-	Transaction(queryFunc func() error) error
+	Transaction(queryFunc func(tx *sql.Tx) error) error
 }
 
 type QueryerTx interface {

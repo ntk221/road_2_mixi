@@ -1,57 +1,59 @@
-package usecases
+package usecases_test
 
 import (
-	"problem1/domain"
+	"database/sql"
+	"fmt"
+	"log"
+	"problem1/infra"
 	"problem1/testutils"
+	"problem1/usecases"
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
+type txAdmin struct {
+	*sql.DB
+	*testing.T
+}
+
+func NewTxAdmin(db *sql.DB, t *testing.T) *txAdmin {
+	return &txAdmin{
+		db,
+		t,
+	}
+}
+
+// Transaction for test
+func (ta *txAdmin) Transaction(update func(tx *sql.Tx) (err error)) error {
+	tx, err := ta.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	_ = testutils.PrepareTestBlockList(ta.T, tx)
+	_ = testutils.PrepareTestFriendLinks(ta.T, tx)
+	_ = testutils.PrepareTestUsers(ta.T, tx)
+	ta.T.Cleanup(func() { _ = tx.Rollback() })
+
+	if err := update(tx); err != nil {
+		return fmt.Errorf("transaction query failed %w", err)
+	}
+	// Test用なのでCommitしない
+	return nil
+}
+
 func TestGetRealFriends(t *testing.T) {
-	tx, err := testutils.OpenDBForTest(t).Begin()
-	t.Cleanup(func() { _ = tx.Rollback() })
+	db := testutils.OpenDBForTest(t)
+
+	ta := NewTxAdmin(db, t)
+	ur := infra.NewUserRepository()
+	sut := usecases.NewUserService(ta, ur)
+
+	ret, err := sut.GetFriendList(1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	testUsers := []domain.User{
-		{
-			UserID: 1,
-			Name:   "test1",
-			FriendList: []int{
-				2, 3,
-			},
-			BlockList: []int{
-				4,
-			},
-		},
-	}
-
-	_ = testUsers
-
-	/*moq := &UserRepositoryMock{}
-	moq.GetByIDFunc = func(userID int, tx domain.Queryer) (domain.User, error) {
-		// 特定のユーザーIDに対して異なる結果を返す
-		switch userID {
-		case 1:
-			return testUsers[0], nil
-		case 2:
-			return domain.User{UserID: 2, Name: "test2", BlockList: []int{1}}, nil
-		case 3:
-			return domain.User{UserID: 3, Name: "test3"}, nil
-		default:
-			return domain.User{}, errors.New("user not found")
-		}
-	}*/
-
-	/*sut := NewUserService(tx, moq)
-
-	ret, err := sut.GetFriendList(testUsers[0].UserID)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	log.Printf("%v\n", ret)*/
+	log.Printf("%v\n", ret)
 
 }

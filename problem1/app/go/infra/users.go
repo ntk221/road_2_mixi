@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"problem1/domain"
 	"problem1/usecases"
 )
@@ -95,9 +96,9 @@ func (ur *UserRepositoryImpl) getBlockUsersByID(user_id int, db domain.Queryer) 
 func (ur *UserRepositoryImpl) GetByID(user_id int, db domain.QueryerTx) (domain.User, error) {
 	var user domain.User
 
-	queryFuncs := func() error {
+	queryFuncs := func(tx *sql.Tx) error {
 		query := `SELECT id, user_id, name FROM users WHERE user_id = ?`
-		row := db.QueryRow(query, user_id)
+		row := tx.QueryRow(query, user_id)
 
 		if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -106,7 +107,7 @@ func (ur *UserRepositoryImpl) GetByID(user_id int, db domain.QueryerTx) (domain.
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
 
-		friendIDs, err := ur.getFriendsByID(user_id, db)
+		friendIDs, err := ur.getFriendsByID(user_id, tx)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				user.FriendList = nil
@@ -115,7 +116,7 @@ func (ur *UserRepositoryImpl) GetByID(user_id int, db domain.QueryerTx) (domain.
 		}
 		user.FriendList = friendIDs
 
-		blockedIDs, err := ur.getBlockUsersByID(user_id, db)
+		blockedIDs, err := ur.getBlockUsersByID(user_id, tx)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				user.BlockList = nil
@@ -126,6 +127,8 @@ func (ur *UserRepositoryImpl) GetByID(user_id int, db domain.QueryerTx) (domain.
 
 		return nil
 	}
+
+	log.Println("start transaction")
 
 	if err := db.Transaction(queryFuncs); err != nil {
 		return domain.User{}, fmt.Errorf("failed to transaction: %w", err)

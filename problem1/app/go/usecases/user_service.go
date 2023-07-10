@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"log"
 	"problem1/domain"
 )
 
@@ -12,11 +13,11 @@ type UserService interface {
 }
 
 type UserServiceImpl struct {
-	db domain.Database
+	db domain.QueryerTx
 	ur UserRepository
 }
 
-func NewUserService(db domain.Database, ur UserGetter) UserService {
+func NewUserService(db domain.QueryerTx, ur UserGetter) UserService {
 	return &UserServiceImpl{
 		db: db,
 		ur: ur,
@@ -24,8 +25,7 @@ func NewUserService(db domain.Database, ur UserGetter) UserService {
 }
 
 func (us UserServiceImpl) GetFriendList(user_id int) ([]domain.User, error) {
-	ta := NewTxAdmin(us.db)
-	user, err := us.ur.GetByID(user_id, ta)
+	user, err := us.ur.GetByID(user_id, us.db)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,8 @@ func (us UserServiceImpl) GetFriendList(user_id int) ([]domain.User, error) {
 	friends := make([]domain.User, 0)
 	friendIDs := user.GetFriendList()
 	for _, friendID := range friendIDs {
-		friend, err := us.ur.GetByID(friendID, ta)
+		log.Print(friendID)
+		friend, err := us.ur.GetByID(friendID, us.db)
 		if err != nil {
 			return nil, err
 		}
