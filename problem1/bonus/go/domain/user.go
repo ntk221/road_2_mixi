@@ -55,10 +55,6 @@ func (u User) GetBlockList() []UserID {
 	return u.BlockList
 }
 
-func (u User) comparable() interface{} {
-	return u.UserID
-}
-
 /*func (u User) IsBlocked(user User) bool {
 	return contains(user.BlockList, u.UserID)
 }*/
