@@ -1,59 +1,58 @@
 package infra
 
 import (
+	"database/sql"
+	"fmt"
 	"log"
-	"problem1/domain"
 	"problem1/testutils"
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func TestUserRepository_GetByID(t *testing.T) {
-	tx, err := testutils.OpenDBForTest(t).Begin()
-	t.Cleanup(func() { _ = tx.Rollback() })
+type txAdmin struct {
+	*sql.DB
+	*testing.T
+}
+
+func NewTxAdmin(db *sql.DB, t *testing.T) *txAdmin {
+	return &txAdmin{
+		db,
+		t,
+	}
+}
+
+// Transaction for test
+func (ta *txAdmin) Transaction(update func(tx *sql.Tx) (err error)) error {
+	tx, err := ta.Begin()
 	if err != nil {
-		t.Fatal(err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
+	_ = testutils.PrepareTestBlockList(ta.T, tx)
+	_ = testutils.PrepareTestFriendLinks(ta.T, tx)
+	_ = testutils.PrepareTestUsers(ta.T, tx)
+	ta.T.Cleanup(func() { _ = tx.Rollback() })
 
-	// testUsers := testutils.PrepareTestUsers(t, tx)
-	// testFriendLink := testutils.PrepareTestFriendLinks(t, tx)
-	// testBlockList := testutils.PrepareTestBlockList(t, tx)
-
-	testUsers := []domain.User{
-		{
-			UserID: 1,
-			Name:   "user1",
-			FriendList: []int{
-				2, 3, 4, 5,
-			},
-			BlockList: []int{
-				6, 7, 8, 9,
-			},
-		},
-		{
-			UserID: 2,
-			Name:   "user2",
-			FriendList: []int{
-				1, 3, 4, 5,
-			},
-			BlockList: []int{
-				6, 7, 8, 9,
-			},
-		},
+	if err := update(tx); err != nil {
+		return fmt.Errorf("transaction query failed %w", err)
 	}
+	// Test用なのでCommitしない
+	return nil
+}
 
-	log.Printf("testUsers: %+v", testUsers)
+func TestUserRepository_GetByID(t *testing.T) {
+	db := testutils.OpenDBForTest(t)
+	ta := NewTxAdmin(db, t)
 
 	sut := NewUserRepository()
 
-	ret, err := sut.GetByID(testUsers[0].UserID, tx)
+	ret, err := sut.GetByID(1, ta)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if ret.UserID != testUsers[0].UserID {
-		t.Errorf("ID should be %d, but got %d", testUsers[0].ID, ret.ID)
+	if ret.UserID != 1 {
+		t.Errorf("ID should be %d, but got %d", 1, ret.ID)
 	}
 
 	log.Printf("ret: %+v", ret)
@@ -61,17 +60,16 @@ func TestUserRepository_GetByID(t *testing.T) {
 
 func TestGetFriendsByID(t *testing.T) {
 	tx, err := testutils.OpenDBForTest(t).Begin()
-	t.Cleanup(func() { _ = tx.Rollback() })
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	testUsers := testutils.PrepareTestUsers(t, tx)
-	testFriendLink := testutils.PrepareTestFriendLinks(t, tx)
-	_ = testFriendLink
+	t.Cleanup(func() { _ = tx.Rollback() })
+	_ = testutils.PrepareTestBlockList(t, tx)
+	_ = testutils.PrepareTestFriendLinks(t, tx)
+	_ = testutils.PrepareTestUsers(t, tx)
 
 	sut := NewUserRepository()
-	ret, err := sut.getFriendsByID(testUsers[0].UserID, tx)
+	ret, err := sut.getFriendsByID(1, tx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,4 +77,6 @@ func TestGetFriendsByID(t *testing.T) {
 	if len(ret) != 4 {
 		t.Errorf("friends length should be 4, but got %d", len(ret))
 	}
+
+	log.Printf("ret: %+v", ret)
 }

@@ -18,7 +18,7 @@ func NewUserRepository() *UserRepositoryImpl {
 
 // FriendLinkによって，繋がっているユーザーのIDを取得する
 // 方向性は考慮しない
-func (ur *UserRepositoryImpl) getFriendsByID(user_id int, db domain.Queryer) ([]int, error) {
+func (ur *UserRepositoryImpl) getFriendsByID(user_id domain.UserID, db domain.Queryer) ([]domain.UserID, error) {
 	query := `
 		SELECT user_id
 		FROM users
@@ -44,7 +44,7 @@ func (ur *UserRepositoryImpl) getFriendsByID(user_id int, db domain.Queryer) ([]
 	}
 	defer rows.Close()
 
-	friends := make([]int, 0)
+	friends := make([]domain.UserID, 0)
 	for rows.Next() {
 		var friend domain.User
 		if err := rows.Scan(&friend.UserID); err != nil {
@@ -61,8 +61,13 @@ func (ur *UserRepositoryImpl) getFriendsByID(user_id int, db domain.Queryer) ([]
 
 // BlockListによって繋がっている，ユーザーのIDを取得する
 // 方向性は考慮しない
-func (ur *UserRepositoryImpl) getBlockUsersByID(user_id int, db domain.Queryer) ([]int, error) {
-	query := `SELECT user1_id, user2_id FROM block_list WHERE user1_id = ? OR user2_id = ?`
+func (ur *UserRepositoryImpl) getBlockUsersByID(user_id domain.UserID, db domain.Queryer) ([]domain.UserID, error) {
+	query := `
+	SELECT user1_id, user2_id 
+	FROM block_list 
+	WHERE user1_id = ? 
+	OR user2_id = ?
+	`
 	rows, err := db.Query(query, user_id, user_id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -72,9 +77,9 @@ func (ur *UserRepositoryImpl) getBlockUsersByID(user_id int, db domain.Queryer) 
 	}
 	defer rows.Close()
 
-	var blockIDs []int
+	var blockIDs []domain.UserID
 	for rows.Next() {
-		var user1ID, user2ID int
+		var user1ID, user2ID domain.UserID
 		if err := rows.Scan(&user1ID, &user2ID); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil, sql.ErrNoRows
@@ -92,45 +97,68 @@ func (ur *UserRepositoryImpl) getBlockUsersByID(user_id int, db domain.Queryer) 
 	return blockIDs, nil
 }
 
-func (ur *UserRepositoryImpl) GetByID(user_id int, db domain.Queryer) (domain.User, error) {
-	query := `SELECT id, user_id, name FROM users WHERE user_id = ?`
-	row := db.QueryRow(query, user_id)
-
+func (ur *UserRepositoryImpl) GetByID(user_id domain.UserID, db domain.QueryerTx) (domain.User, error) {
 	var user domain.User
-	if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			// 存在しないユーザーIDが指定された場合はpanic
-			// これの代わりにエラーを返した方が良いかも
-			return domain.User{}, sql.ErrNoRows
+
+	queryFuncs := func(tx *sql.Tx) error {
+		query := `SELECT id, user_id, name FROM users WHERE user_id = ?`
+		row := tx.QueryRow(query, user_id)
+
+		if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
+			return fmt.Errorf("failed to scan row: %w", err)
 		}
-		return domain.User{}, fmt.Errorf("failed to scan row: %w", err)
+
+		friendIDs, err := ur.getFriendsByID(user_id, tx)
+		if err != nil {
+			return fmt.Errorf("failed to get friends: %w", err)
+		}
+		user.FriendList = friendIDs
+
+		blockedIDs, err := ur.getBlockUsersByID(user_id, tx)
+		if err != nil {
+			return fmt.Errorf("failed to get blocked users: %w", err)
+		}
+		user.BlockList = blockedIDs
+
+		return nil
 	}
 
-	friendIDs, err := ur.getFriendsByID(user_id, db)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			user.FriendList = nil // return model.User{}, sql.ErrNoRows
-		}
-		return domain.User{}, fmt.Errorf("failed to get friends: %w", err)
+	if err := db.Transaction(queryFuncs); err != nil {
+		return domain.User{}, fmt.Errorf("failed to transaction: %w", err)
 	}
-	user.FriendList = friendIDs
-
-	blockedIDs, err := ur.getBlockUsersByID(user_id, db)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			user.BlockList = nil // return model.User{}, sql.ErrNoRows
-		}
-		return domain.User{}, fmt.Errorf("failed to get blocked users: %w", err)
-	}
-	user.BlockList = blockedIDs
 
 	return user, nil
 }
 
-/*func replacePlaceholders(query string, argCount int) string {
-	placeholders := make([]string, argCount)
-	for i := 0; i < argCount; i++ {
-		placeholders[i] = "?"
+func (ur *UserRepositoryImpl) GetUsers(db domain.Queryer) ([]domain.User, error) {
+	users := make([]domain.User, 0)
+	query := `
+		SELECT id, user_id, name
+		FROM users
+	`
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query: %w", err)
 	}
-	return strings.Replace(query, "?", strings.Join(placeholders, ","), -1)
-}*/
+
+	for rows.Next() {
+		var user domain.User
+		if err := rows.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+		friendIDs, err := ur.getFriendsByID(user.UserID, db)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get friends: %w", err)
+		}
+		user.FriendList = friendIDs
+
+		blockedIDs, err := ur.getBlockUsersByID(user.UserID, db)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get blocked users: %w", err)
+		}
+		user.BlockList = blockedIDs
+		users = append(users, user)
+	}
+
+	return users, nil
+}

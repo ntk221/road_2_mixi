@@ -2,6 +2,7 @@ package handler
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 	"problem1/domain"
 	"problem1/infra"
@@ -12,25 +13,74 @@ import (
 	"github.com/labstack/echo"
 )
 
-func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
+func GetUserListHandler(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		id, err := get_id(c)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, err)
-			return nil
-		}
+		// ユーザー情報取得用の設定
 		ur := infra.NewUserRepository()
-		us := usecases.NewUserService(db, ur)
 
-		filteredFriends, err := us.GetFriendList(id)
+		users, err := ur.GetUsers(db)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)
 		}
 
-		// fmt.Println(filteredFriends)
+		c.JSON(http.StatusOK, users)
+		return nil
+	}
+}
+
+func GetUserHandler(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		id := c.Param("id")
+		if id == "" {
+			c.JSON(http.StatusBadRequest, errors.New("id is empty"))
+			return nil
+		}
+		idInt, err := strconv.Atoi(id)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, err)
+			return nil
+		}
+
+		// ユーザー情報取得用の設定
+		ur := infra.NewUserRepository()
+		txAdmin := usecases.NewTxAdmin(db)
+		us := usecases.NewUserService(txAdmin, ur)
+
+		user, err := us.GetUserByID((domain.UserID(idInt)))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+		}
+
+		c.JSON(http.StatusOK, user)
+		return nil
+	}
+}
+
+func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		id := c.Param("id")
+		if id == "" {
+			c.JSON(http.StatusBadRequest, errors.New("id is empty"))
+			return nil
+		}
+		idInt, err := strconv.Atoi(id)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, err)
+			return nil
+		}
+
+		// ユーザー情報取得用の設定
+		ur := infra.NewUserRepository()
+		txAdmin := usecases.NewTxAdmin(db)
+		us := usecases.NewUserService(txAdmin, ur)
+
+		friends, err := us.GetFriendList(domain.UserID(idInt))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+		}
 
 		friendNames := make([]string, 0)
-		for _, friend := range filteredFriends {
+		for _, friend := range friends {
 			friendNames = append(friendNames, friend.Name)
 		}
 
@@ -41,16 +91,22 @@ func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 
 func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		id, err := get_id(c)
+		id := c.Param("id")
+		if id == "" {
+			c.JSON(http.StatusBadRequest, errors.New("id is empty"))
+			return nil
+		}
+		idInt, err := strconv.Atoi(id)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, err)
 			return nil
 		}
 
 		ur := infra.NewUserRepository()
-		us := usecases.NewUserService(db, ur)
+		txAdmin := usecases.NewTxAdmin(db)
+		us := usecases.NewUserService(txAdmin, ur)
 
-		friendList, err := us.GetFriendList(id)
+		friendList, err := us.GetFriendList(domain.UserID(idInt))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)
 		}
@@ -63,6 +119,54 @@ func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
 		filteredNames, err := get_names(fof)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)
+		}
+
+		c.JSON(http.StatusOK, filteredNames)
+		return nil
+	}
+}
+
+func GetFriendOfFriendListPagingHandler(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		// parameterを取得
+		id := c.Param("id")
+		if id == "" {
+			c.JSON(http.StatusBadRequest, errors.New("id is empty"))
+			return nil
+		}
+		idInt, err := strconv.Atoi(id)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, err)
+			return nil
+		}
+		params, err := get_limit_page(c)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+			return nil
+		}
+
+		ur := infra.NewUserRepository()
+		txAdmin := usecases.NewTxAdmin(db)
+		us := usecases.NewUserService(txAdmin, ur)
+
+		friendList, err := us.GetFriendList(domain.UserID(idInt))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+			return nil
+		}
+
+		fof, err := us.GetFriendListFromUsers(friendList)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+			return nil
+		}
+
+		fof = pagenate(params, fof)
+
+		filteredNames, err := get_names(fof)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err)
+			return nil
 		}
 
 		c.JSON(http.StatusOK, filteredNames)
@@ -88,14 +192,14 @@ func get_names(fof []domain.User) ([]string, error) {
 	return filteredNames, nil
 }
 
-func get_id(c echo.Context) (int, error) {
+/*func get_id(c echo.Context) (int, error) {
 	id_s := c.QueryParam("id")
 	id, err := strconv.Atoi(id_s)
 	if err != nil {
 		return 0, err
 	}
 	return id, nil
-}
+}*/
 
 func get_limit_page(c echo.Context) (types.PagenationParams, error) {
 	limit_s := c.QueryParam("limit")
@@ -129,48 +233,6 @@ func get_limit_page(c echo.Context) (types.PagenationParams, error) {
 	}
 
 	return params, nil
-}
-
-func GetFriendOfFriendListPagingHandler(db *sql.DB) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		id, err := get_id(c)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return nil
-		}
-		params, err := get_limit_page(c)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return nil
-		}
-
-		ur := infra.NewUserRepository()
-		us := usecases.NewUserService(db, ur)
-
-		friendList, err := us.GetFriendList(id)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return nil
-		}
-
-		// get friend of friend list pagenated
-		fof, err := us.GetFriendListFromUsers(friendList)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return nil
-		}
-
-		fof = pagenate(params, fof)
-
-		filteredNames, err := get_names(fof)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return nil
-		}
-
-		c.JSON(http.StatusOK, filteredNames)
-		return nil
-	}
 }
 
 func pagenate(params types.PagenationParams, users []domain.User) []domain.User {

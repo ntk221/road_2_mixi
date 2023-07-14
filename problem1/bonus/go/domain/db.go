@@ -5,10 +5,20 @@ import (
 )
 
 type Database interface {
-	// Beginner
+	Beginner
 	Preparer
 	Queryer
 	Executer
+}
+
+type TxWrapper interface {
+	Beginner
+	Transaction(queryFunc func(tx *sql.Tx) error) error
+}
+
+type QueryerTx interface {
+	Queryer
+	TxWrapper
 }
 
 type Beginner interface {
