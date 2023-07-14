@@ -41,7 +41,6 @@ func (us UserServiceImpl) GetFriendList(user_id domain.UserID) ([]domain.User, e
 	}
 
 	friendIDs := user.GetFriendList()
-	friendIDs = filterByBlockList(friendIDs, user.GetBlockList())
 
 	friends, err := us.getUsersByIDs(friendIDs)
 	if err != nil {
@@ -76,23 +75,4 @@ func (us UserServiceImpl) getUsersByIDs(user_ids []domain.UserID) ([]domain.User
 		users = append(users, user)
 	}
 	return users, nil
-}
-
-func filterByBlockList(friendIDs []domain.UserID, blockList []domain.UserID) []domain.UserID {
-	filteredIDs := make([]domain.UserID, 0)
-	for _, id := range friendIDs {
-		if !contains(blockList, id) {
-			filteredIDs = append(filteredIDs, id)
-		}
-	}
-	return filteredIDs
-}
-
-func contains(ids []domain.UserID, id domain.UserID) bool {
-	for _, v := range ids {
-		if v == id {
-			return true
-		}
-	}
-	return false
 }

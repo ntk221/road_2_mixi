@@ -22,6 +22,30 @@ type BlockList struct {
 	User2ID int   `db:"user2_id"`
 }
 
+func NewUser(ID int64, UserID UserID, Name string, FriendList []UserID, BlockList []UserID) *User {
+	u := User{
+		ID,
+		UserID,
+		Name,
+		FriendList,
+		BlockList,
+	}
+
+	u = u.filterByBlockList()
+	return &u
+}
+
+func (u User) filterByBlockList() User {
+	var filteredFriendList []UserID
+	for _, v := range u.FriendList {
+		if !contains(u.BlockList, v) {
+			filteredFriendList = append(filteredFriendList, v)
+		}
+	}
+	u.FriendList = filteredFriendList
+	return u
+}
+
 func (u User) GetFriendList() []UserID {
 	return u.FriendList
 }

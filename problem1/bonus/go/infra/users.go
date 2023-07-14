@@ -127,6 +127,8 @@ func (ur *UserRepositoryImpl) GetByID(user_id domain.UserID, db domain.QueryerTx
 		return domain.User{}, fmt.Errorf("failed to transaction: %w", err)
 	}
 
+	user = *domain.NewUser(user.ID, user.UserID, user.Name, user.FriendList, user.BlockList)
+
 	return user, nil
 }
 
@@ -157,6 +159,7 @@ func (ur *UserRepositoryImpl) GetUsers(db domain.Queryer) ([]domain.User, error)
 			return nil, fmt.Errorf("failed to get blocked users: %w", err)
 		}
 		user.BlockList = blockedIDs
+		user = *domain.NewUser(user.ID, user.UserID, user.Name, user.FriendList, user.BlockList)
 		users = append(users, user)
 	}
 
