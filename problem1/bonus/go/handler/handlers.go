@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"problem1/domain"
 	"problem1/infra"
-	"problem1/types"
 	"problem1/usecases"
 	"strconv"
 
@@ -20,7 +19,7 @@ func GetUserListHandler(db *sql.DB) echo.HandlerFunc {
 
 		users, err := ur.GetUsers(db)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
+			c.JSON(http.StatusInternalServerError, errors.New("failed to get users"))
 		}
 
 		c.JSON(http.StatusOK, users)
@@ -30,12 +29,7 @@ func GetUserListHandler(db *sql.DB) echo.HandlerFunc {
 
 func GetUserHandler(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		id := c.Param("id")
-		if id == "" {
-			c.JSON(http.StatusBadRequest, errors.New("id is empty"))
-			return nil
-		}
-		idInt, err := strconv.Atoi(id)
+		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
 			c.JSON(http.StatusBadRequest, err)
 			return nil
@@ -46,9 +40,9 @@ func GetUserHandler(db *sql.DB) echo.HandlerFunc {
 		txAdmin := usecases.NewTxAdmin(db)
 		us := usecases.NewUserService(txAdmin, ur)
 
-		user, err := us.GetUserByID((domain.UserID(idInt)))
+		user, err := us.GetUserByID((domain.UserID(id)))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
+			c.JSON(http.StatusInternalServerError, errors.New("failed to get user"))
 		}
 
 		c.JSON(http.StatusOK, user)
@@ -58,14 +52,9 @@ func GetUserHandler(db *sql.DB) echo.HandlerFunc {
 
 func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		id := c.Param("id")
-		if id == "" {
-			c.JSON(http.StatusBadRequest, errors.New("id is empty"))
-			return nil
-		}
-		idInt, err := strconv.Atoi(id)
+		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			c.JSON(http.StatusBadRequest, err)
+			c.JSON(http.StatusBadRequest, errors.New("id must be integer"))
 			return nil
 		}
 
@@ -74,15 +63,14 @@ func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 		txAdmin := usecases.NewTxAdmin(db)
 		us := usecases.NewUserService(txAdmin, ur)
 
-		friends, err := us.GetFriendList(domain.UserID(idInt))
+		friends, err := us.GetFriendList(domain.UserID(id))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
+			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend list"))
 		}
 
-		friendNames := make([]string, 0)
-		for _, friend := range friends {
-			friendNames = append(friendNames, friend.Name)
-		}
+		friendCollection := domain.NewUserCollection(friends)
+		friendCollection.GetUniqueUsers()
+		friendNames := friendCollection.GetUserNames()
 
 		c.JSON(http.StatusOK, friendNames)
 		return nil
@@ -91,52 +79,18 @@ func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 
 func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		id := c.Param("id")
-		if id == "" {
-			c.JSON(http.StatusBadRequest, errors.New("id is empty"))
+		id, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, errors.New("id must be integer"))
 			return nil
 		}
-		idInt, err := strconv.Atoi(id)
+		hop, err := strconv.Atoi(c.QueryParam("hop"))
 		if err != nil {
-			c.JSON(http.StatusBadRequest, err)
+			c.JSON(http.StatusBadRequest, errors.New("hop must be integer"))
 			return nil
 		}
-
-		ur := infra.NewUserRepository()
-		txAdmin := usecases.NewTxAdmin(db)
-		us := usecases.NewUserService(txAdmin, ur)
-
-		friendList, err := us.GetFriendList(domain.UserID(idInt))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-		}
-
-		fof, err := us.GetFriendListFromUsers(friendList)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-		}
-
-		filteredNames, err := get_names(fof)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-		}
-
-		c.JSON(http.StatusOK, filteredNames)
-		return nil
-	}
-}
-
-func GetFriendOfFriendListPagingHandler(db *sql.DB) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		// parameterを取得
-		id := c.Param("id")
-		if id == "" {
-			c.JSON(http.StatusBadRequest, errors.New("id is empty"))
-			return nil
-		}
-		idInt, err := strconv.Atoi(id)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, err)
+		if hop < 1 || hop > 10 {
+			c.JSON(http.StatusBadRequest, errors.New("hop must be between 1 and 10"))
 			return nil
 		}
 		params, err := get_limit_page(c)
@@ -149,24 +103,21 @@ func GetFriendOfFriendListPagingHandler(db *sql.DB) echo.HandlerFunc {
 		txAdmin := usecases.NewTxAdmin(db)
 		us := usecases.NewUserService(txAdmin, ur)
 
-		friendList, err := us.GetFriendList(domain.UserID(idInt))
+		friendList, err := us.GetFriendList(domain.UserID(id))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return nil
+			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend list"))
 		}
 
-		fof, err := us.GetFriendListFromUsers(friendList)
+		fof, err := us.GetFriendListFromUsers(friendList, hop)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return nil
+			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend of friend list"))
 		}
 
 		fof = pagenate(params, fof)
 
 		filteredNames, err := get_names(fof)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return nil
+			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend of friend list"))
 		}
 
 		c.JSON(http.StatusOK, filteredNames)
@@ -192,16 +143,7 @@ func get_names(fof []domain.User) ([]string, error) {
 	return filteredNames, nil
 }
 
-/*func get_id(c echo.Context) (int, error) {
-	id_s := c.QueryParam("id")
-	id, err := strconv.Atoi(id_s)
-	if err != nil {
-		return 0, err
-	}
-	return id, nil
-}*/
-
-func get_limit_page(c echo.Context) (types.PagenationParams, error) {
+func get_limit_page(c echo.Context) (PagenationParams, error) {
 	limit_s := c.QueryParam("limit")
 	if limit_s == "" {
 		limit_s = "10"
@@ -209,7 +151,7 @@ func get_limit_page(c echo.Context) (types.PagenationParams, error) {
 
 	limit, err := strconv.Atoi(limit_s)
 	if err != nil {
-		return types.PagenationParams{}, err
+		return PagenationParams{}, err
 	}
 
 	page_s := c.QueryParam("page")
@@ -219,15 +161,15 @@ func get_limit_page(c echo.Context) (types.PagenationParams, error) {
 
 	page, err := strconv.Atoi(page_s)
 	if err != nil {
-		return types.PagenationParams{}, err
+		return PagenationParams{}, err
 	}
 
 	// limit and page should be positive
 	if limit < 0 || page < 0 {
-		return types.PagenationParams{}, err
+		return PagenationParams{}, err
 	}
 
-	params := types.PagenationParams{
+	params := PagenationParams{
 		Limit:  limit,
 		Offset: page,
 	}
@@ -235,7 +177,7 @@ func get_limit_page(c echo.Context) (types.PagenationParams, error) {
 	return params, nil
 }
 
-func pagenate(params types.PagenationParams, users []domain.User) []domain.User {
+func pagenate(params PagenationParams, users []domain.User) []domain.User {
 	if params.Offset > len(users) {
 		return make([]domain.User, 0)
 	}

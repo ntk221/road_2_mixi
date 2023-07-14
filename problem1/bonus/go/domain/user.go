@@ -31,6 +31,7 @@ func NewUser(ID int64, UserID UserID, Name string, FriendList []UserID, BlockLis
 		BlockList,
 	}
 
+	// ブロックリストに入っているユーザーは，友達リストから除外する
 	u = u.filterByBlockList()
 	return &u
 }
@@ -54,11 +55,15 @@ func (u User) GetBlockList() []UserID {
 	return u.BlockList
 }
 
-func (u User) IsBlocked(user User) bool {
-	return contains(user.BlockList, u.UserID)
+func (u User) comparable() interface{} {
+	return u.UserID
 }
 
-func contains(list []UserID, target UserID) bool {
+/*func (u User) IsBlocked(user User) bool {
+	return contains(user.BlockList, u.UserID)
+}*/
+
+func contains[T comparable](list []T, target T) bool {
 	for _, v := range list {
 		if v == target {
 			return true

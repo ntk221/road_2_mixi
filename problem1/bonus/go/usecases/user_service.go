@@ -6,7 +6,7 @@ import (
 
 type UserService interface {
 	GetFriendList(user_id domain.UserID) ([]domain.User, error)
-	GetFriendListFromUsers([]domain.User) ([]domain.User, error)
+	GetFriendListFromUsers([]domain.User, int) ([]domain.User, error)
 	GetUserByID(user_id domain.UserID) (domain.User, error)
 	// GetUsersByIDs() ([]domain.User, error)
 	// GetFriendListWithPagenation(user_id int, params types.PagenationParams) ([]model.User, error)
@@ -50,19 +50,27 @@ func (us UserServiceImpl) GetFriendList(user_id domain.UserID) ([]domain.User, e
 	return friends, nil
 }
 
-func (us UserServiceImpl) GetFriendListFromUsers(friendList []domain.User) ([]domain.User, error) {
-	fofs := make([]domain.User, 0)
+func (us UserServiceImpl) GetFriendListFromUsers(userList []domain.User, depth int) ([]domain.User, error) {
+	friends := make([]domain.User, 0)
 
-	for _, friend := range friendList {
-		fof, err := us.GetFriendList(friend.UserID)
+	for _, user := range userList {
+		v, err := us.GetFriendList(user.UserID)
 		if err != nil {
 			return nil, err
 		}
-		fofs = append(fofs, fof...)
+		friends = append(friends, v...)
+
+		if depth > 1 {
+			// 友人の友人のリストを再帰的に取得
+			recursiveFriends, err := us.GetFriendListFromUsers(v, depth-1)
+			if err != nil {
+				return nil, err
+			}
+			friends = append(friends, recursiveFriends...)
+		}
 	}
 
-	// fofs = pagenate(params, fofs)
-	return fofs, nil
+	return friends, nil
 }
 
 func (us UserServiceImpl) getUsersByIDs(user_ids []domain.UserID) ([]domain.User, error) {

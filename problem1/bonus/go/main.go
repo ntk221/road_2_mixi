@@ -36,7 +36,7 @@ func main() {
 
 	e.GET("/users/:id/friends-of-friends", handler.GetFriendOfFriendListHandler(db))
 
-	e.GET("/get_friend_of_friend_list_paging", handler.GetFriendOfFriendListPagingHandler(db))
+	// e.GET("/get_friend_of_friend_list_paging", handler.GetFriendOfFriendListPagingHandler(db))
 
 	e.Logger.Fatal(e.Start(":" + strconv.Itoa(conf.Server.Port)))
 }
