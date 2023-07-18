@@ -1,14 +1,14 @@
-package domain
+package user
 
 type UserCollection struct {
-	Users []User
+	Users []User `json:"users"`
 }
 
 func NewUserCollection(users []User) *UserCollection {
 	return &UserCollection{users}
 }
 
-func (uc UserCollection) GetUniqueUsers() *UserCollection {
+func (uc UserCollection) GetUniqueUserList() *UserCollection {
 	var uniqueUsers []User
 	var uniqueUserIDs []UserID
 	for _, u := range uc.Users {
@@ -27,12 +27,4 @@ func (uc *UserCollection) GetUserNames() []string {
 		userNames = append(userNames, u.Name)
 	}
 	return userNames
-}
-
-func (uc *UserCollection) GetFriendIDs() []UserID {
-	friendIDs := make([]UserID, 0)
-	for _, u := range uc.Users {
-		friendIDs = append(friendIDs, u.FriendList...)
-	}
-	return friendIDs
 }

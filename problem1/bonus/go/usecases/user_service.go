@@ -2,40 +2,54 @@ package usecases
 
 import (
 	"problem1/domain"
+	"problem1/infra"
 )
 
 type UserService interface {
 	GetFriendList(user_id domain.UserID) ([]domain.User, error)
 	GetFriendListFromUsers([]domain.User, int) ([]domain.User, error)
 	GetUserByID(user_id domain.UserID) (domain.User, error)
-	// GetUsersByIDs() ([]domain.User, error)
-	// GetFriendListWithPagenation(user_id int, params types.PagenationParams) ([]model.User, error)
-	// GetFriendListFromUsersWithPagenation([]model.User, types.PagenationParams) ([]model.User, error)
 }
 
 type UserServiceImpl struct {
-	qx domain.QueryerTx
-	ur UserRepository
+	db domain.Database
+	// ur UserRepository
 }
 
-func NewUserService(qx domain.QueryerTx, ur UserGetter) UserService {
+func NewUserService(db domain.Database) UserService {
 	return &UserServiceImpl{
-		qx: qx,
-		ur: ur,
+		db: db,
+		// ur: ur,
 	}
 }
 
 func (us UserServiceImpl) GetUserByID(user_id domain.UserID) (domain.User, error) {
-	user, err := us.ur.GetByID(user_id, us.qx)
+	ur := infra.NewUserRepository()
+	tx, err := us.db.Begin()
 	if err != nil {
 		return domain.User{}, err
 	}
 
+	user, err := ur.GetByID(user_id, tx)
+	if err != nil {
+		return domain.User{}, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return domain.User{}, err
+	}
 	return user, nil
 }
 
 func (us UserServiceImpl) GetFriendList(user_id domain.UserID) ([]domain.User, error) {
-	user, err := us.ur.GetByID(user_id, us.qx)
+	ur := infra.NewUserRepository()
+	tx, err := us.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := ur.GetByID(user_id, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -47,9 +61,17 @@ func (us UserServiceImpl) GetFriendList(user_id domain.UserID) ([]domain.User, e
 		return nil, err
 	}
 
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
 	return friends, nil
 }
 
+// depth の分だけ再帰呼び出しを行う
+// そのたびにforループを呼び出している
+// これは，depthが大きくなると，再帰呼び出しの回数が増えるため，効率が悪い
+// TODO: 計算量を改善する
 func (us UserServiceImpl) GetFriendListFromUsers(userList []domain.User, depth int) ([]domain.User, error) {
 	friends := make([]domain.User, 0)
 

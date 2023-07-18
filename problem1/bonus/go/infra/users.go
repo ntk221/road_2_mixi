@@ -5,11 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"problem1/domain"
-	"problem1/usecases"
 )
 
 type UserRepositoryImpl struct {
-	usecases.UserGetter
+	domain.UserGetter
 }
 
 func NewUserRepository() *UserRepositoryImpl {
@@ -63,10 +62,10 @@ func (ur *UserRepositoryImpl) getFriendsByID(user_id domain.UserID, db domain.Qu
 // 方向性は考慮しない
 func (ur *UserRepositoryImpl) getBlockUsersByID(user_id domain.UserID, db domain.Queryer) ([]domain.UserID, error) {
 	query := `
-	SELECT user1_id, user2_id 
-	FROM block_list 
-	WHERE user1_id = ? 
-	OR user2_id = ?
+		SELECT user1_id, user2_id 
+		FROM block_list 
+		WHERE user1_id = ? 
+		OR user2_id = ?
 	`
 	rows, err := db.Query(query, user_id, user_id)
 	if err != nil {
@@ -97,35 +96,27 @@ func (ur *UserRepositoryImpl) getBlockUsersByID(user_id domain.UserID, db domain
 	return blockIDs, nil
 }
 
-func (ur *UserRepositoryImpl) GetByID(user_id domain.UserID, db domain.QueryerTx) (domain.User, error) {
+func (ur *UserRepositoryImpl) GetByID(user_id domain.UserID, db domain.Queryer) (domain.User, error) {
 	var user domain.User
 
-	queryFuncs := func(tx *sql.Tx) error {
-		query := `SELECT id, user_id, name FROM users WHERE user_id = ?`
-		row := tx.QueryRow(query, user_id)
+	query := `SELECT id, user_id, name FROM users WHERE user_id = ?`
+	row := db.QueryRow(query, user_id)
 
-		if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
-			return fmt.Errorf("failed to scan row: %w", err)
-		}
-
-		friendIDs, err := ur.getFriendsByID(user_id, tx)
-		if err != nil {
-			return fmt.Errorf("failed to get friends: %w", err)
-		}
-		user.FriendList = friendIDs
-
-		blockedIDs, err := ur.getBlockUsersByID(user_id, tx)
-		if err != nil {
-			return fmt.Errorf("failed to get blocked users: %w", err)
-		}
-		user.BlockList = blockedIDs
-
-		return nil
+	if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
+		return domain.User{}, fmt.Errorf("failed to scan row: %w", err)
 	}
 
-	if err := db.Transaction(queryFuncs); err != nil {
-		return domain.User{}, fmt.Errorf("failed to transaction: %w", err)
+	friendIDs, err := ur.getFriendsByID(user_id, db)
+	if err != nil {
+		return domain.User{}, fmt.Errorf("failed to get friends: %w", err)
 	}
+	user.FriendList = friendIDs
+
+	blockedIDs, err := ur.getBlockUsersByID(user_id, db)
+	if err != nil {
+		return domain.User{}, fmt.Errorf("failed to get blocked users: %w", err)
+	}
+	user.BlockList = blockedIDs
 
 	user = *domain.NewUser(user.ID, user.UserID, user.Name, user.FriendList, user.BlockList)
 

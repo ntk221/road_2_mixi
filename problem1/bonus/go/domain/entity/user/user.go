@@ -1,4 +1,4 @@
-package domain
+package user
 
 type UserID int
 
@@ -10,20 +10,8 @@ type User struct {
 	BlockList  []UserID
 }
 
-type FriendLink struct {
-	ID      int64
-	User1ID int
-	User2ID int
-}
-
-type BlockList struct {
-	ID      int64
-	User1ID int
-	User2ID int
-}
-
 func NewUser(ID int64, UserID UserID, Name string, FriendList []UserID, BlockList []UserID) *User {
-	u := User{
+	u := &User{
 		ID,
 		UserID,
 		Name,
@@ -33,10 +21,10 @@ func NewUser(ID int64, UserID UserID, Name string, FriendList []UserID, BlockLis
 
 	// ブロックリストに入っているユーザーは，友達リストから除外する
 	u = u.filterByBlockList()
-	return &u
+	return u
 }
 
-func (u User) filterByBlockList() User {
+func (u User) filterByBlockList() *User {
 	var filteredFriendList []UserID
 	for _, v := range u.FriendList {
 		if !contains(u.BlockList, v) {
@@ -44,7 +32,7 @@ func (u User) filterByBlockList() User {
 		}
 	}
 	u.FriendList = filteredFriendList
-	return u
+	return &u
 }
 
 func (u User) GetFriendList() []UserID {
@@ -54,10 +42,6 @@ func (u User) GetFriendList() []UserID {
 func (u User) GetBlockList() []UserID {
 	return u.BlockList
 }
-
-/*func (u User) IsBlocked(user User) bool {
-	return contains(user.BlockList, u.UserID)
-}*/
 
 func contains[T comparable](list []T, target T) bool {
 	for _, v := range list {

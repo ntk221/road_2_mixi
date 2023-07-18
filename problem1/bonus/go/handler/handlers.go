@@ -12,12 +12,20 @@ import (
 	"github.com/labstack/echo"
 )
 
-func GetUserListHandler(db *sql.DB) echo.HandlerFunc {
+type Handler struct {
+	db *sql.DB
+}
+
+func NewHandler(db *sql.DB) *Handler {
+	return &Handler{db: db}
+}
+
+func (h *Handler) GetUserListHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// ユーザー情報取得用の設定
 		ur := infra.NewUserRepository()
 
-		users, err := ur.GetUsers(db)
+		users, err := ur.GetUsers(h.db)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, errors.New("failed to get users"))
 		}
@@ -27,7 +35,7 @@ func GetUserListHandler(db *sql.DB) echo.HandlerFunc {
 	}
 }
 
-func GetUserHandler(db *sql.DB) echo.HandlerFunc {
+func (h *Handler) GetUserHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
@@ -36,11 +44,9 @@ func GetUserHandler(db *sql.DB) echo.HandlerFunc {
 		}
 
 		// ユーザー情報取得用の設定
-		ur := infra.NewUserRepository()
-		txAdmin := usecases.NewTxAdmin(db)
-		us := usecases.NewUserService(txAdmin, ur)
+		uc := usecases.NewUserService(h.db)
 
-		user, err := us.GetUserByID((domain.UserID(id)))
+		user, err := uc.GetUserByID((domain.UserID(id)))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, errors.New("failed to get user"))
 		}
@@ -50,7 +56,7 @@ func GetUserHandler(db *sql.DB) echo.HandlerFunc {
 	}
 }
 
-func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
+func (h *Handler) GetFriendListHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
@@ -59,9 +65,7 @@ func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 		}
 
 		// ユーザー情報取得用の設定
-		ur := infra.NewUserRepository()
-		txAdmin := usecases.NewTxAdmin(db)
-		us := usecases.NewUserService(txAdmin, ur)
+		us := usecases.NewUserService(h.db)
 
 		friends, err := us.GetFriendList(domain.UserID(id))
 		if err != nil {
@@ -69,7 +73,7 @@ func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 		}
 
 		friendCollection := domain.NewUserCollection(friends)
-		friendCollection.GetUniqueUsers()
+		friendCollection = friendCollection.GetUniqueUsers()
 		friendNames := friendCollection.GetUserNames()
 
 		c.JSON(http.StatusOK, friendNames)
@@ -77,7 +81,7 @@ func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 	}
 }
 
-func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
+func (h *Handler) GetFriendOfFriendListHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
@@ -99,23 +103,21 @@ func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
 			return nil
 		}
 
-		ur := infra.NewUserRepository()
-		txAdmin := usecases.NewTxAdmin(db)
-		us := usecases.NewUserService(txAdmin, ur)
+		us := usecases.NewUserService(h.db)
 
 		friendList, err := us.GetFriendList(domain.UserID(id))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend list"))
 		}
 
-		fof, err := us.GetFriendListFromUsers(friendList, hop)
+		friend_of_friends, err := us.GetFriendListFromUsers(friendList, hop)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend of friend list"))
 		}
 
-		fof = pagenate(params, fof)
+		friend_of_friends = pagenate(params, friend_of_friends)
 
-		filteredNames, err := get_names(fof)
+		filteredNames, err := get_names(friend_of_friends)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend of friend list"))
 		}

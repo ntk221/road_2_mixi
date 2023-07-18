@@ -28,14 +28,16 @@ func main() {
 		return c.String(http.StatusOK, "minimal_sns!")
 	})
 
-	e.GET("/users/:id", handler.GetUserHandler(db))
+	handler := handler.NewHandler(db)
 
-	e.GET("/users", handler.GetUserListHandler(db))
+	e.GET("/users/:id", handler.GetUserHandler())
 
-	e.GET("/users/:id/friends", handler.GetFriendListHandler(db))
+	e.GET("/users", handler.GetUserListHandler())
+
+	e.GET("/users/:id/friends", handler.GetFriendListHandler())
 
 	// クエリパラメータ limit, offset, hop を受け取ることができる
-	e.GET("/users/:id/friends-of-friends", handler.GetFriendOfFriendListHandler(db))
+	e.GET("/users/:id/friends-of-friends", handler.GetFriendOfFriendListHandler())
 
 	// e.GET("/get_friend_of_friend_list_paging", handler.GetFriendOfFriendListPagingHandler(db))
 
