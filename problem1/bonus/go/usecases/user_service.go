@@ -29,6 +29,13 @@ func (us UserServiceImpl) GetUserByID(user_id domain.UserID) (domain.User, error
 	if err != nil {
 		return domain.User{}, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		} else if err != nil {
+			tx.Rollback()
+		}
+	}()
 
 	user, err := ur.GetByID(user_id, tx)
 	if err != nil {
@@ -48,6 +55,13 @@ func (us UserServiceImpl) GetFriendList(user_id domain.UserID) ([]domain.User, e
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		} else if err != nil {
+			tx.Rollback()
+		}
+	}()
 
 	user, err := ur.GetByID(user_id, tx)
 	if err != nil {
