@@ -5,10 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"problem1/domain"
+	"problem1/domain/repository"
 )
 
 type UserRepositoryImpl struct {
-	domain.UserGetter
+	repository.UserGetter
 }
 
 func NewUserRepository() *UserRepositoryImpl {
@@ -17,7 +18,7 @@ func NewUserRepository() *UserRepositoryImpl {
 
 // FriendLinkによって，繋がっているユーザーのIDを取得する
 // 方向性は考慮しない
-func (ur *UserRepositoryImpl) getFriendsByID(user_id domain.UserID, db domain.Queryer) ([]domain.UserID, error) {
+func (ur *UserRepositoryImpl) getFriendsByID(user_id domain.UserID, db repository.Queryer) ([]domain.UserID, error) {
 	query := `
 		SELECT user_id
 		FROM users
@@ -60,7 +61,7 @@ func (ur *UserRepositoryImpl) getFriendsByID(user_id domain.UserID, db domain.Qu
 
 // BlockListによって繋がっている，ユーザーのIDを取得する
 // 方向性は考慮しない
-func (ur *UserRepositoryImpl) getBlockUsersByID(user_id domain.UserID, db domain.Queryer) ([]domain.UserID, error) {
+func (ur *UserRepositoryImpl) getBlockUsersByID(user_id domain.UserID, db repository.Queryer) ([]domain.UserID, error) {
 	query := `
 		SELECT user1_id, user2_id 
 		FROM block_list 
@@ -96,34 +97,34 @@ func (ur *UserRepositoryImpl) getBlockUsersByID(user_id domain.UserID, db domain
 	return blockIDs, nil
 }
 
-func (ur *UserRepositoryImpl) GetByID(user_id domain.UserID, db domain.Queryer) (domain.User, error) {
-	var user domain.User
+func (ur *UserRepositoryImpl) GetByID(user_id domain.UserID, db repository.Queryer) (*domain.User, error) {
+	var user *domain.User
 
 	query := `SELECT id, user_id, name FROM users WHERE user_id = ?`
 	row := db.QueryRow(query, user_id)
 
 	if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
-		return domain.User{}, fmt.Errorf("failed to scan row: %w", err)
+		return nil, fmt.Errorf("failed to scan row: %w", err)
 	}
 
 	friendIDs, err := ur.getFriendsByID(user_id, db)
 	if err != nil {
-		return domain.User{}, fmt.Errorf("failed to get friends: %w", err)
+		return nil, fmt.Errorf("failed to get friends: %w", err)
 	}
 	user.FriendList = friendIDs
 
 	blockedIDs, err := ur.getBlockUsersByID(user_id, db)
 	if err != nil {
-		return domain.User{}, fmt.Errorf("failed to get blocked users: %w", err)
+		return nil, fmt.Errorf("failed to get blocked users: %w", err)
 	}
 	user.BlockList = blockedIDs
 
-	user = *domain.NewUser(user.ID, user.UserID, user.Name, user.FriendList, user.BlockList)
+	user = domain.NewUser(user.ID, user.UserID, user.Name, user.FriendList, user.BlockList)
 
 	return user, nil
 }
 
-func (ur *UserRepositoryImpl) GetUsers(db domain.Queryer) ([]domain.User, error) {
+func (ur *UserRepositoryImpl) GetUsers(db repository.Queryer) ([]domain.User, error) {
 	users := make([]domain.User, 0)
 	query := `
 		SELECT id, user_id, name

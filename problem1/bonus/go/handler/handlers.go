@@ -72,9 +72,7 @@ func (h *Handler) GetFriendListHandler() echo.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend list"))
 		}
 
-		friendCollection := domain.NewUserCollection(friends)
-		friendCollection = friendCollection.GetUniqueUsers()
-		friendNames := friendCollection.GetUserNames()
+		friendNames := friends.GetUserNames()
 
 		c.JSON(http.StatusOK, friendNames)
 		return nil
@@ -117,7 +115,7 @@ func (h *Handler) GetFriendOfFriendListHandler() echo.HandlerFunc {
 
 		friend_of_friends = pagenate(params, friend_of_friends)
 
-		filteredNames, err := get_names(friend_of_friends)
+		filteredNames := friend_of_friends.GetUserNames()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend of friend list"))
 		}
@@ -127,10 +125,11 @@ func (h *Handler) GetFriendOfFriendListHandler() echo.HandlerFunc {
 	}
 }
 
-func get_names(fof []domain.User) ([]string, error) {
-	fofNames := make([]string, 0)
-	for _, v := range fof {
-		fofNames = append(fofNames, v.Name)
+/*
+func get_names(friend_of_friend *domain.UserCollection) ([]string, error) {
+
+	for _, v := range friend_of_friend.GetUserNames() {
+		fofNames = append(fofNames, v)
 	}
 
 	uniqueNames := make(map[string]bool)
@@ -144,6 +143,7 @@ func get_names(fof []domain.User) ([]string, error) {
 	}
 	return filteredNames, nil
 }
+*/
 
 func get_limit_page(c echo.Context) (PagenationParams, error) {
 	limit_s := c.QueryParam("limit")
@@ -179,14 +179,16 @@ func get_limit_page(c echo.Context) (PagenationParams, error) {
 	return params, nil
 }
 
-func pagenate(params PagenationParams, users []domain.User) []domain.User {
-	if params.Offset > len(users) {
-		return make([]domain.User, 0)
+func pagenate(params PagenationParams, UserCollection *domain.UserCollection) *domain.UserCollection {
+	if params.Offset > len(UserCollection.Users) {
+		return UserCollection
 	}
 
-	if params.Offset+params.Limit > len(users) {
-		return users[params.Offset:]
+	if params.Offset+params.Limit > len(UserCollection.Users) {
+		offset := UserCollection.Users[params.Offset:]
+		return domain.NewUserCollection(offset)
 	}
 
-	return users[params.Offset : params.Offset+params.Limit]
+	divided := UserCollection.Users[params.Offset : params.Offset+params.Limit]
+	return domain.NewUserCollection(divided)
 }

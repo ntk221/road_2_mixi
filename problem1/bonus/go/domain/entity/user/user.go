@@ -43,6 +43,10 @@ func (u User) GetBlockList() []UserID {
 	return u.BlockList
 }
 
+/*func (u User) IsBlocked(user User) bool {
+	return contains(user.BlockList, u.UserID)
+}*/
+
 func contains[T comparable](list []T, target T) bool {
 	for _, v := range list {
 		if v == target {

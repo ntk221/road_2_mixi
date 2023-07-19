@@ -2,10 +2,11 @@ package testutils
 
 import (
 	"problem1/domain"
+	"problem1/domain/repository"
 	"testing"
 )
 
-func PrepareTestUsers(t *testing.T, tx domain.Executer) []domain.User {
+func PrepareTestUsers(t *testing.T, tx repository.Executer) []domain.User {
 	t.Helper()
 
 	if _, err := tx.Exec(`DELETE FROM users`); err != nil {
@@ -31,7 +32,7 @@ func PrepareTestUsers(t *testing.T, tx domain.Executer) []domain.User {
 	return testUsers
 }
 
-func PrepareTestFriendLinks(t *testing.T, tx domain.Executer) []domain.FriendLink {
+func PrepareTestFriendLinks(t *testing.T, tx repository.Executer) []domain.FriendLink {
 	t.Helper()
 
 	if _, err := tx.Exec(`DELETE FROM friend_link`); err != nil {
@@ -59,7 +60,7 @@ func PrepareTestFriendLinks(t *testing.T, tx domain.Executer) []domain.FriendLin
 	return testFriendLinks
 }
 
-func PrepareTestBlockList(t *testing.T, tx domain.Executer) []domain.BlockList {
+func PrepareTestBlockList(t *testing.T, tx repository.Executer) []domain.BlockList {
 	t.Helper()
 
 	if _, err := tx.Exec(`DELETE FROM block_list`); err != nil {

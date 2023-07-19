@@ -1,15 +1,15 @@
 package domain
 
 type UserCollection struct {
-	Users []User
+	Users []*User
 }
 
-func NewUserCollection(users []User) *UserCollection {
+func NewUserCollection(users []*User) *UserCollection {
 	return &UserCollection{users}
 }
 
 func (uc UserCollection) GetUniqueUsers() *UserCollection {
-	var uniqueUsers []User
+	var uniqueUsers []*User
 	var uniqueUserIDs []UserID
 	for _, u := range uc.Users {
 		if !contains(uniqueUserIDs, u.UserID) {
@@ -35,4 +35,9 @@ func (uc *UserCollection) GetFriendIDs() []UserID {
 		friendIDs = append(friendIDs, u.FriendList...)
 	}
 	return friendIDs
+}
+
+func (uc *UserCollection) Merge(other *UserCollection) *UserCollection {
+	uc.Users = append(uc.Users, other.Users...)
+	return uc
 }
