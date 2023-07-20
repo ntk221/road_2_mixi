@@ -11,6 +11,8 @@ ps:
 
 logs:
 	docker-compose logs -f
+db:
+	docker-compose exec db mysql
 
 re: down up
 
