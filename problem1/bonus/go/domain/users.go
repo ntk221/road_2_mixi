@@ -5,6 +5,9 @@ type UserCollection struct {
 }
 
 func NewUserCollection(users []*User) *UserCollection {
+	if users == nil {
+		panic("UserCollection can not be initialized by nil")
+	}
 	return &UserCollection{users}
 }
 
@@ -39,5 +42,6 @@ func (uc *UserCollection) GetFriendIDs() []UserID {
 
 func (uc *UserCollection) Merge(other *UserCollection) *UserCollection {
 	uc.Users = append(uc.Users, other.Users...)
+	uc = uc.GetUniqueUsers()
 	return uc
 }

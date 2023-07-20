@@ -86,7 +86,11 @@ func (h *Handler) GetFriendOfFriendListHandler() echo.HandlerFunc {
 			c.JSON(http.StatusBadRequest, errors.New("id must be integer"))
 			return nil
 		}
-		hop, err := strconv.Atoi(c.QueryParam("hop"))
+		hopStr := c.QueryParam("hop")
+		if hopStr == "" {
+			hopStr = "1"
+		}
+		hop, err := strconv.Atoi(hopStr)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, errors.New("hop must be integer"))
 			return nil

@@ -3,9 +3,9 @@ package domain
 type UserID int
 
 type User struct {
-	ID         int64
-	UserID     UserID
-	Name       string
+	ID         int64  `db:"id"`
+	UserID     UserID `db:"user_id"`
+	Name       string `db:"name"`
 	FriendList []UserID
 	BlockList  []UserID
 }

@@ -4,6 +4,8 @@ import (
 	"problem1/domain"
 	"problem1/domain/repository"
 	"problem1/infra"
+
+	"log"
 )
 
 type UserService interface {
@@ -42,6 +44,8 @@ func (us UserServiceImpl) GetUserByID(user_id domain.UserID) (*domain.User, erro
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println("user: ", user)
 
 	err = tx.Commit()
 	if err != nil {
@@ -82,7 +86,7 @@ func (us UserServiceImpl) GetFriendList(user_id domain.UserID) (*domain.UserColl
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return friends, nil
 }
 
@@ -91,7 +95,7 @@ func (us UserServiceImpl) GetFriendList(user_id domain.UserID) (*domain.UserColl
 // これは，depthが大きくなると，再帰呼び出しの回数が増えるため，効率が悪い
 // TODO: 計算量を改善する
 func (us UserServiceImpl) GetFriendListFromUsers(userList *domain.UserCollection, depth int) (*domain.UserCollection, error) {
-	friends := domain.NewUserCollection(nil)
+	friends := domain.NewUserCollection([]*domain.User{})
 
 	for _, user := range userList.Users {
 		v, err := us.GetFriendList(user.UserID)

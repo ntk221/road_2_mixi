@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"problem1/domain"
 	"problem1/domain/repository"
 )
@@ -70,9 +71,6 @@ func (ur *UserRepositoryImpl) getBlockUsersByID(user_id domain.UserID, db reposi
 	`
 	rows, err := db.Query(query, user_id, user_id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, sql.ErrNoRows
-		}
 		return nil, fmt.Errorf("failed to query: %w", err)
 	}
 	defer rows.Close()
@@ -81,9 +79,6 @@ func (ur *UserRepositoryImpl) getBlockUsersByID(user_id domain.UserID, db reposi
 	for rows.Next() {
 		var user1ID, user2ID domain.UserID
 		if err := rows.Scan(&user1ID, &user2ID); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return nil, sql.ErrNoRows
-			}
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		if user1ID != user_id {
@@ -98,12 +93,13 @@ func (ur *UserRepositoryImpl) getBlockUsersByID(user_id domain.UserID, db reposi
 }
 
 func (ur *UserRepositoryImpl) GetByID(user_id domain.UserID, db repository.Queryer) (*domain.User, error) {
-	var user *domain.User
+	var user domain.User
 
 	query := `SELECT id, user_id, name FROM users WHERE user_id = ?`
 	row := db.QueryRow(query, user_id)
 
 	if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
+		log.Println("err: ", err)
 		return nil, fmt.Errorf("failed to scan row: %w", err)
 	}
 
@@ -119,9 +115,9 @@ func (ur *UserRepositoryImpl) GetByID(user_id domain.UserID, db repository.Query
 	}
 	user.BlockList = blockedIDs
 
-	user = domain.NewUser(user.ID, user.UserID, user.Name, user.FriendList, user.BlockList)
+	userEntity := domain.NewUser(user.ID, user.UserID, user.Name, user.FriendList, user.BlockList)
 
-	return user, nil
+	return userEntity, nil
 }
 
 func (ur *UserRepositoryImpl) GetUsers(db repository.Queryer) ([]domain.User, error) {
