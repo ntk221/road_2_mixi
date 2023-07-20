@@ -82,10 +82,8 @@ func (us UserServiceImpl) GetFriendList(user_id domain.UserID) (*domain.UserColl
 	if err != nil {
 		return nil, err
 	}
-
-	friendCollection := domain.NewUserCollection(friends)
-	friendCollection = friendCollection.GetUniqueUsers()
-	return friendCollection, nil
+	
+	return friends, nil
 }
 
 // depth の分だけ再帰呼び出しを行う
@@ -115,7 +113,7 @@ func (us UserServiceImpl) GetFriendListFromUsers(userList *domain.UserCollection
 	return friends, nil
 }
 
-func (us UserServiceImpl) getUsersByIDs(user_ids []domain.UserID) ([]*domain.User, error) {
+func (us UserServiceImpl) getUsersByIDs(user_ids []domain.UserID) (*domain.UserCollection, error) {
 	users := make([]*domain.User, 0)
 	for _, user_id := range user_ids {
 		user, err := us.GetUserByID(user_id)
@@ -124,5 +122,7 @@ func (us UserServiceImpl) getUsersByIDs(user_ids []domain.UserID) ([]*domain.Use
 		}
 		users = append(users, user)
 	}
-	return users, nil
+	userCollection := domain.NewUserCollection(users)
+	userCollection = userCollection.GetUniqueUsers()
+	return userCollection, nil
 }
