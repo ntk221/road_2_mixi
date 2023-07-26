@@ -7,6 +7,7 @@ import (
 	"log"
 	"problem1/domain/entity"
 	"problem1/domain/repository"
+	"problem1/domain/valueObject"
 )
 
 type UserRepositoryImpl struct {
@@ -19,7 +20,7 @@ func NewUserRepository() *UserRepositoryImpl {
 
 // FriendLinkによって，繋がっているユーザーのIDを取得する
 // 方向性は考慮しない
-func (ur *UserRepositoryImpl) getFriendsByID(user_id entity.UserID, db repository.Queryer) ([]entity.UserID, error) {
+func (ur *UserRepositoryImpl) getFriendsByID(user_id valueObject.UserID, db repository.Queryer) ([]valueObject.UserID, error) {
 	query := `
 		SELECT user_id
 		FROM users
@@ -45,7 +46,7 @@ func (ur *UserRepositoryImpl) getFriendsByID(user_id entity.UserID, db repositor
 	}
 	defer rows.Close()
 
-	friends := make([]entity.UserID, 0)
+	friends := make([]valueObject.UserID, 0)
 	for rows.Next() {
 		var friend entity.User
 		if err := rows.Scan(&friend.UserID); err != nil {
@@ -62,7 +63,7 @@ func (ur *UserRepositoryImpl) getFriendsByID(user_id entity.UserID, db repositor
 
 // BlockListによって繋がっている，ユーザーのIDを取得する
 // 方向性は考慮しない
-func (ur *UserRepositoryImpl) getBlockUsersByID(user_id entity.UserID, db repository.Queryer) ([]entity.UserID, error) {
+func (ur *UserRepositoryImpl) getBlockUsersByID(user_id valueObject.UserID, db repository.Queryer) ([]valueObject.UserID, error) {
 	query := `
 		SELECT user1_id, user2_id 
 		FROM block_list 
@@ -75,9 +76,9 @@ func (ur *UserRepositoryImpl) getBlockUsersByID(user_id entity.UserID, db reposi
 	}
 	defer rows.Close()
 
-	var blockIDs []entity.UserID
+	var blockIDs []valueObject.UserID
 	for rows.Next() {
-		var user1ID, user2ID entity.UserID
+		var user1ID, user2ID valueObject.UserID
 		if err := rows.Scan(&user1ID, &user2ID); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
@@ -92,7 +93,7 @@ func (ur *UserRepositoryImpl) getBlockUsersByID(user_id entity.UserID, db reposi
 	return blockIDs, nil
 }
 
-func (ur *UserRepositoryImpl) GetByID(user_id entity.UserID, db repository.Queryer) (*entity.User, error) {
+func (ur *UserRepositoryImpl) GetByID(user_id valueObject.UserID, db repository.Queryer) (*entity.User, error) {
 	var user entity.User
 
 	query := `SELECT id, user_id, name FROM users WHERE user_id = ?`

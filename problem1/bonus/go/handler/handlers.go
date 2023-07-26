@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"problem1/domain/entity"
+	"problem1/domain/valueObject"
 	"problem1/infra"
 	"problem1/usecases"
 	"strconv"
@@ -46,7 +47,8 @@ func (h *Handler) GetUserHandler() echo.HandlerFunc {
 		// ユーザー情報取得用の設定
 		uc := usecases.NewUserService(h.db)
 
-		user, err := uc.GetUserByID((entity.UserID(id)))
+		userID := valueObject.NewUserID(id)
+		user, err := uc.GetUserByID(userID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, errors.New("failed to get user"))
 		}
@@ -67,7 +69,8 @@ func (h *Handler) GetFriendListHandler() echo.HandlerFunc {
 		// ユーザー情報取得用の設定
 		us := usecases.NewUserService(h.db)
 
-		friends, err := us.GetFriendList(entity.UserID(id))
+		userID := valueObject.NewUserID(id)
+		friends, err := us.GetFriendList(userID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend list"))
 		}
@@ -107,7 +110,8 @@ func (h *Handler) GetFriendOfFriendListHandler() echo.HandlerFunc {
 
 		us := usecases.NewUserService(h.db)
 
-		friendList, err := us.GetFriendList(entity.UserID(id))
+		userID := valueObject.NewUserID(id)
+		friendList, err := us.GetFriendList(userID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend list"))
 		}

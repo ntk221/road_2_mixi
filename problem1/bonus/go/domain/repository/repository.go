@@ -2,6 +2,7 @@ package repository
 
 import (
 	"problem1/domain/entity"
+	"problem1/domain/valueObject"
 )
 
 //go:generate go run github.com/matryer/moq -out moq_test.go . UserRepository UserGetter
@@ -10,5 +11,5 @@ type UserRepository interface {
 }
 
 type UserGetter interface {
-	GetByID(id entity.UserID, db Queryer) (entity.User, error)
+	GetByID(id valueObject.UserID, db Queryer) (entity.User, error)
 }

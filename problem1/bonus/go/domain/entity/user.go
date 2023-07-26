@@ -1,6 +1,8 @@
 package entity
 
-type UserID int
+import (
+	. "problem1/domain/valueObject"
+)
 
 type User struct {
 	ID         int64  `db:"id"`

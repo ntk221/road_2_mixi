@@ -1,5 +1,9 @@
 package entity
 
+import (
+	. "problem1/domain/valueObject"
+)
+
 type UserCollection struct {
 	Users []*User
 }

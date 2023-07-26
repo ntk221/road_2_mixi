@@ -3,15 +3,16 @@ package usecases
 import (
 	"problem1/domain/entity"
 	"problem1/domain/repository"
+	"problem1/domain/valueObject"
 	"problem1/infra"
 
 	"log"
 )
 
 type UserService interface {
-	GetFriendList(user_id entity.UserID) (*entity.UserCollection, error)
+	GetFriendList(user_id valueObject.UserID) (*entity.UserCollection, error)
 	GetFriendListFromUsers(*entity.UserCollection, int) (*entity.UserCollection, error)
-	GetUserByID(user_id entity.UserID) (*entity.User, error)
+	GetUserByID(user_id valueObject.UserID) (*entity.User, error)
 }
 
 type UserServiceImpl struct {
@@ -26,7 +27,7 @@ func NewUserService(db repository.Database) UserService {
 	}
 }
 
-func (us UserServiceImpl) GetUserByID(user_id entity.UserID) (*entity.User, error) {
+func (us UserServiceImpl) GetUserByID(userID valueObject.UserID) (*entity.User, error) {
 	ur := infra.NewUserRepository()
 	tx, err := us.db.Begin()
 	if err != nil {
@@ -40,7 +41,7 @@ func (us UserServiceImpl) GetUserByID(user_id entity.UserID) (*entity.User, erro
 		}
 	}()
 
-	user, err := ur.GetByID(user_id, tx)
+	user, err := ur.GetByID(userID, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +57,7 @@ func (us UserServiceImpl) GetUserByID(user_id entity.UserID) (*entity.User, erro
 
 // id に対応するユーザーの友達のユーザー情報を取得する
 // ユーザー情報はuniqueにする
-func (us UserServiceImpl) GetFriendList(user_id entity.UserID) (*entity.UserCollection, error) {
+func (us UserServiceImpl) GetFriendList(userID valueObject.UserID) (*entity.UserCollection, error) {
 	ur := infra.NewUserRepository()
 	tx, err := us.db.Begin()
 	if err != nil {
@@ -70,7 +71,7 @@ func (us UserServiceImpl) GetFriendList(user_id entity.UserID) (*entity.UserColl
 		}
 	}()
 
-	user, err := ur.GetByID(user_id, tx)
+	user, err := ur.GetByID(userID, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -117,10 +118,12 @@ func (us UserServiceImpl) GetFriendListFromUsers(userList *entity.UserCollection
 	return friends, nil
 }
 
-func (us UserServiceImpl) getUsersByIDs(user_ids []entity.UserID) (*entity.UserCollection, error) {
+// userIDs に対応するユーザーのユーザー情報を取得する
+// GetUserByIDの呼び出しではint型を使うので，userIDsをint型に変換する必要がある
+func (us UserServiceImpl) getUsersByIDs(userIDs []valueObject.UserID) (*entity.UserCollection, error) {
 	users := make([]*entity.User, 0)
-	for _, user_id := range user_ids {
-		user, err := us.GetUserByID(user_id)
+	for _, userID := range userIDs {
+		user, err := us.GetUserByID(userID)
 		if err != nil {
 			return nil, err
 		}
