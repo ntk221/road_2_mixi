@@ -1,10 +1,13 @@
-package user
+package entity
 
 type UserCollection struct {
 	Users []*User
 }
 
 func NewUserCollection(users []*User) *UserCollection {
+	if users == nil {
+		panic("UserCollection can not be initialized by nil")
+	}
 	return &UserCollection{users}
 }
 
@@ -35,4 +38,10 @@ func (uc *UserCollection) GetFriendIDs() []UserID {
 		friendIDs = append(friendIDs, u.FriendList...)
 	}
 	return friendIDs
+}
+
+func (uc *UserCollection) Merge(other *UserCollection) *UserCollection {
+	uc.Users = append(uc.Users, other.Users...)
+	uc = uc.GetUniqueUsers()
+	return uc
 }

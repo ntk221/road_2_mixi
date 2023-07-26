@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"problem1/domain"
+	"problem1/domain/entity"
 	"problem1/domain/repository"
 )
 
@@ -19,7 +19,7 @@ func NewUserRepository() *UserRepositoryImpl {
 
 // FriendLinkによって，繋がっているユーザーのIDを取得する
 // 方向性は考慮しない
-func (ur *UserRepositoryImpl) getFriendsByID(user_id domain.UserID, db repository.Queryer) ([]domain.UserID, error) {
+func (ur *UserRepositoryImpl) getFriendsByID(user_id entity.UserID, db repository.Queryer) ([]entity.UserID, error) {
 	query := `
 		SELECT user_id
 		FROM users
@@ -45,9 +45,9 @@ func (ur *UserRepositoryImpl) getFriendsByID(user_id domain.UserID, db repositor
 	}
 	defer rows.Close()
 
-	friends := make([]domain.UserID, 0)
+	friends := make([]entity.UserID, 0)
 	for rows.Next() {
-		var friend domain.User
+		var friend entity.User
 		if err := rows.Scan(&friend.UserID); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil, sql.ErrNoRows
@@ -62,7 +62,7 @@ func (ur *UserRepositoryImpl) getFriendsByID(user_id domain.UserID, db repositor
 
 // BlockListによって繋がっている，ユーザーのIDを取得する
 // 方向性は考慮しない
-func (ur *UserRepositoryImpl) getBlockUsersByID(user_id domain.UserID, db repository.Queryer) ([]domain.UserID, error) {
+func (ur *UserRepositoryImpl) getBlockUsersByID(user_id entity.UserID, db repository.Queryer) ([]entity.UserID, error) {
 	query := `
 		SELECT user1_id, user2_id 
 		FROM block_list 
@@ -75,9 +75,9 @@ func (ur *UserRepositoryImpl) getBlockUsersByID(user_id domain.UserID, db reposi
 	}
 	defer rows.Close()
 
-	var blockIDs []domain.UserID
+	var blockIDs []entity.UserID
 	for rows.Next() {
-		var user1ID, user2ID domain.UserID
+		var user1ID, user2ID entity.UserID
 		if err := rows.Scan(&user1ID, &user2ID); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
@@ -92,8 +92,8 @@ func (ur *UserRepositoryImpl) getBlockUsersByID(user_id domain.UserID, db reposi
 	return blockIDs, nil
 }
 
-func (ur *UserRepositoryImpl) GetByID(user_id domain.UserID, db repository.Queryer) (*domain.User, error) {
-	var user domain.User
+func (ur *UserRepositoryImpl) GetByID(user_id entity.UserID, db repository.Queryer) (*entity.User, error) {
+	var user entity.User
 
 	query := `SELECT id, user_id, name FROM users WHERE user_id = ?`
 	row := db.QueryRow(query, user_id)
@@ -115,13 +115,13 @@ func (ur *UserRepositoryImpl) GetByID(user_id domain.UserID, db repository.Query
 	}
 	user.BlockList = blockedIDs
 
-	userEntity := domain.NewUser(user.ID, user.UserID, user.Name, user.FriendList, user.BlockList)
+	userEntity := entity.NewUser(user.ID, user.UserID, user.Name, user.FriendList, user.BlockList)
 
 	return userEntity, nil
 }
 
-func (ur *UserRepositoryImpl) GetUsers(db repository.Queryer) ([]domain.User, error) {
-	users := make([]domain.User, 0)
+func (ur *UserRepositoryImpl) GetUsers(db repository.Queryer) ([]entity.User, error) {
+	users := make([]entity.User, 0)
 	query := `
 		SELECT id, user_id, name
 		FROM users
@@ -132,7 +132,7 @@ func (ur *UserRepositoryImpl) GetUsers(db repository.Queryer) ([]domain.User, er
 	}
 
 	for rows.Next() {
-		var user domain.User
+		var user entity.User
 		if err := rows.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
@@ -147,7 +147,7 @@ func (ur *UserRepositoryImpl) GetUsers(db repository.Queryer) ([]domain.User, er
 			return nil, fmt.Errorf("failed to get blocked users: %w", err)
 		}
 		user.BlockList = blockedIDs
-		user = *domain.NewUser(user.ID, user.UserID, user.Name, user.FriendList, user.BlockList)
+		user = *entity.NewUser(user.ID, user.UserID, user.Name, user.FriendList, user.BlockList)
 		users = append(users, user)
 	}
 

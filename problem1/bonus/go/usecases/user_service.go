@@ -1,7 +1,7 @@
 package usecases
 
 import (
-	"problem1/domain"
+	"problem1/domain/entity"
 	"problem1/domain/repository"
 	"problem1/infra"
 
@@ -9,9 +9,9 @@ import (
 )
 
 type UserService interface {
-	GetFriendList(user_id domain.UserID) (*domain.UserCollection, error)
-	GetFriendListFromUsers(*domain.UserCollection, int) (*domain.UserCollection, error)
-	GetUserByID(user_id domain.UserID) (*domain.User, error)
+	GetFriendList(user_id entity.UserID) (*entity.UserCollection, error)
+	GetFriendListFromUsers(*entity.UserCollection, int) (*entity.UserCollection, error)
+	GetUserByID(user_id entity.UserID) (*entity.User, error)
 }
 
 type UserServiceImpl struct {
@@ -26,7 +26,7 @@ func NewUserService(db repository.Database) UserService {
 	}
 }
 
-func (us UserServiceImpl) GetUserByID(user_id domain.UserID) (*domain.User, error) {
+func (us UserServiceImpl) GetUserByID(user_id entity.UserID) (*entity.User, error) {
 	ur := infra.NewUserRepository()
 	tx, err := us.db.Begin()
 	if err != nil {
@@ -56,7 +56,7 @@ func (us UserServiceImpl) GetUserByID(user_id domain.UserID) (*domain.User, erro
 
 // id に対応するユーザーの友達のユーザー情報を取得する
 // ユーザー情報はuniqueにする
-func (us UserServiceImpl) GetFriendList(user_id domain.UserID) (*domain.UserCollection, error) {
+func (us UserServiceImpl) GetFriendList(user_id entity.UserID) (*entity.UserCollection, error) {
 	ur := infra.NewUserRepository()
 	tx, err := us.db.Begin()
 	if err != nil {
@@ -94,8 +94,8 @@ func (us UserServiceImpl) GetFriendList(user_id domain.UserID) (*domain.UserColl
 // そのたびにforループを呼び出している
 // これは，depthが大きくなると，再帰呼び出しの回数が増えるため，効率が悪い
 // TODO: 計算量を改善する
-func (us UserServiceImpl) GetFriendListFromUsers(userList *domain.UserCollection, depth int) (*domain.UserCollection, error) {
-	friends := domain.NewUserCollection([]*domain.User{})
+func (us UserServiceImpl) GetFriendListFromUsers(userList *entity.UserCollection, depth int) (*entity.UserCollection, error) {
+	friends := entity.NewUserCollection([]*entity.User{})
 
 	for _, user := range userList.Users {
 		v, err := us.GetFriendList(user.UserID)
@@ -117,8 +117,8 @@ func (us UserServiceImpl) GetFriendListFromUsers(userList *domain.UserCollection
 	return friends, nil
 }
 
-func (us UserServiceImpl) getUsersByIDs(user_ids []domain.UserID) (*domain.UserCollection, error) {
-	users := make([]*domain.User, 0)
+func (us UserServiceImpl) getUsersByIDs(user_ids []entity.UserID) (*entity.UserCollection, error) {
+	users := make([]*entity.User, 0)
 	for _, user_id := range user_ids {
 		user, err := us.GetUserByID(user_id)
 		if err != nil {
@@ -126,7 +126,7 @@ func (us UserServiceImpl) getUsersByIDs(user_ids []domain.UserID) (*domain.UserC
 		}
 		users = append(users, user)
 	}
-	userCollection := domain.NewUserCollection(users)
+	userCollection := entity.NewUserCollection(users)
 	userCollection = userCollection.GetUniqueUsers()
 	return userCollection, nil
 }

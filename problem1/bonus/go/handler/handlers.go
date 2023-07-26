@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
-	"problem1/domain"
+	"problem1/domain/entity"
 	"problem1/infra"
 	"problem1/usecases"
 	"strconv"
@@ -46,7 +46,7 @@ func (h *Handler) GetUserHandler() echo.HandlerFunc {
 		// ユーザー情報取得用の設定
 		uc := usecases.NewUserService(h.db)
 
-		user, err := uc.GetUserByID((domain.UserID(id)))
+		user, err := uc.GetUserByID((entity.UserID(id)))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, errors.New("failed to get user"))
 		}
@@ -67,7 +67,7 @@ func (h *Handler) GetFriendListHandler() echo.HandlerFunc {
 		// ユーザー情報取得用の設定
 		us := usecases.NewUserService(h.db)
 
-		friends, err := us.GetFriendList(domain.UserID(id))
+		friends, err := us.GetFriendList(entity.UserID(id))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend list"))
 		}
@@ -107,7 +107,7 @@ func (h *Handler) GetFriendOfFriendListHandler() echo.HandlerFunc {
 
 		us := usecases.NewUserService(h.db)
 
-		friendList, err := us.GetFriendList(domain.UserID(id))
+		friendList, err := us.GetFriendList(entity.UserID(id))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend list"))
 		}
@@ -130,7 +130,7 @@ func (h *Handler) GetFriendOfFriendListHandler() echo.HandlerFunc {
 }
 
 /*
-func get_names(friend_of_friend *domain.UserCollection) ([]string, error) {
+func get_names(friend_of_friend *entity.UserCollection) ([]string, error) {
 
 	for _, v := range friend_of_friend.GetUserNames() {
 		fofNames = append(fofNames, v)
@@ -183,16 +183,16 @@ func get_limit_page(c echo.Context) (PagenationParams, error) {
 	return params, nil
 }
 
-func pagenate(params PagenationParams, UserCollection *domain.UserCollection) *domain.UserCollection {
+func pagenate(params PagenationParams, UserCollection *entity.UserCollection) *entity.UserCollection {
 	if params.Offset > len(UserCollection.Users) {
 		return UserCollection
 	}
 
 	if params.Offset+params.Limit > len(UserCollection.Users) {
 		offset := UserCollection.Users[params.Offset:]
-		return domain.NewUserCollection(offset)
+		return entity.NewUserCollection(offset)
 	}
 
 	divided := UserCollection.Users[params.Offset : params.Offset+params.Limit]
-	return domain.NewUserCollection(divided)
+	return entity.NewUserCollection(divided)
 }
