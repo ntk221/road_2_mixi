@@ -28,7 +28,7 @@ func (h *Handler) GetUserListHandler() echo.HandlerFunc {
 
 		users, err := ur.GetUsers(h.db)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, errors.New("failed to get users"))
+			return echo.NewHTTPError(http.StatusInternalServerError, "サーバーで問題が発生しました")
 		}
 
 		c.JSON(http.StatusOK, users)
@@ -40,8 +40,10 @@ func (h *Handler) GetUserHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			c.JSON(http.StatusBadRequest, err)
-			return nil
+			return echo.NewHTTPError(http.StatusInternalServerError, "サーバーで問題が発生しました")
+		}
+		if id <= 0 {
+			return echo.NewHTTPError(http.StatusBadRequest, "idは1以上の正の整数を入力してください")
 		}
 
 		// ユーザー情報取得用の設定
@@ -50,7 +52,7 @@ func (h *Handler) GetUserHandler() echo.HandlerFunc {
 		userID := valueObject.NewUserID(id)
 		user, err := uc.GetUserByID(userID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, errors.New("failed to get user"))
+			echo.NewHTTPError(http.StatusInternalServerError, "サーバーで問題が発生しました")
 		}
 
 		c.JSON(http.StatusOK, user)
@@ -62,8 +64,10 @@ func (h *Handler) GetFriendListHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			c.JSON(http.StatusBadRequest, errors.New("id must be integer"))
-			return nil
+			return echo.NewHTTPError(http.StatusInternalServerError, "サーバーで問題が発生しました")
+		}
+		if id <= 0 {
+			return echo.NewHTTPError(http.StatusBadRequest, "idは1以上の正の整数を入力してください")
 		}
 
 		// ユーザー情報取得用の設定
@@ -72,7 +76,7 @@ func (h *Handler) GetFriendListHandler() echo.HandlerFunc {
 		userID := valueObject.NewUserID(id)
 		friends, err := us.GetFriendList(userID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend list"))
+			return echo.NewHTTPError(http.StatusInternalServerError, "サーバーで問題が発生しました")
 		}
 
 		friendNames := friends.GetUserNames()
@@ -86,8 +90,7 @@ func (h *Handler) GetFriendOfFriendListHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			c.JSON(http.StatusBadRequest, errors.New("id must be integer"))
-			return nil
+			return echo.NewHTTPError(http.StatusInternalServerError, "サーバーで問題が発生しました")
 		}
 		hopStr := c.QueryParam("hop")
 		if hopStr == "" {
@@ -95,17 +98,14 @@ func (h *Handler) GetFriendOfFriendListHandler() echo.HandlerFunc {
 		}
 		hop, err := strconv.Atoi(hopStr)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, errors.New("hop must be integer"))
-			return nil
+			return echo.NewHTTPError(http.StatusInternalServerError, "サーバーで問題が発生しました")
 		}
 		if hop < 1 || hop > 10 {
-			c.JSON(http.StatusBadRequest, errors.New("hop must be between 1 and 10"))
-			return nil
+			return echo.NewHTTPError(http.StatusBadRequest, "hopは1より大きく，10未満の整数を入力してください")
 		}
 		params, err := get_limit_page(c)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, err)
-			return nil
+			return echo.NewHTTPError(http.StatusInternalServerError, "TODO")
 		}
 
 		us := usecases.NewUserService(h.db)
@@ -113,45 +113,25 @@ func (h *Handler) GetFriendOfFriendListHandler() echo.HandlerFunc {
 		userID := valueObject.NewUserID(id)
 		friendList, err := us.GetFriendList(userID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend list"))
+			return echo.NewHTTPError(http.StatusInternalServerError, "サーバーで問題が発生しました")
 		}
 
 		friend_of_friends, err := us.GetFriendListFromUsers(friendList, hop)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend of friend list"))
+			return echo.NewHTTPError(http.StatusInternalServerError, "サーバーで問題が発生しました")
 		}
 
 		friend_of_friends = pagenate(params, friend_of_friends)
 
 		filteredNames := friend_of_friends.GetUserNames()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, errors.New("failed to get friend of friend list"))
+			echo.NewHTTPError(http.StatusInternalServerError, "サーバーで問題が発生しました")
 		}
 
 		c.JSON(http.StatusOK, filteredNames)
 		return nil
 	}
 }
-
-/*
-func get_names(friend_of_friend *entity.UserCollection) ([]string, error) {
-
-	for _, v := range friend_of_friend.GetUserNames() {
-		fofNames = append(fofNames, v)
-	}
-
-	uniqueNames := make(map[string]bool)
-	filteredNames := make([]string, 0)
-
-	for _, name := range fofNames {
-		if !uniqueNames[name] {
-			uniqueNames[name] = true
-			filteredNames = append(filteredNames, name)
-		}
-	}
-	return filteredNames, nil
-}
-*/
 
 func get_limit_page(c echo.Context) (PagenationParams, error) {
 	limit_s := c.QueryParam("limit")
@@ -176,7 +156,7 @@ func get_limit_page(c echo.Context) (PagenationParams, error) {
 
 	// limit and page should be positive
 	if limit < 0 || page < 0 {
-		return PagenationParams{}, err
+		return PagenationParams{}, errors.New("limitとpageはそれぞれ正の整数で無くてはならない")
 	}
 
 	params := PagenationParams{
