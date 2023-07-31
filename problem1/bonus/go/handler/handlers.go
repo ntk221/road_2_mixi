@@ -103,7 +103,7 @@ func (h *Handler) GetFriendOfFriendListHandler() echo.HandlerFunc {
 		if hop < 1 || hop > 10 {
 			return echo.NewHTTPError(http.StatusBadRequest, "hopは1より大きく，10未満の整数を入力してください")
 		}
-		params, err := get_limit_page(c)
+		params, err := getLimitPage(c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "TODO")
 		}
@@ -133,23 +133,23 @@ func (h *Handler) GetFriendOfFriendListHandler() echo.HandlerFunc {
 	}
 }
 
-func get_limit_page(c echo.Context) (PagenationParams, error) {
-	limit_s := c.QueryParam("limit")
-	if limit_s == "" {
-		limit_s = "10"
+func getLimitPage(c echo.Context) (PagenationParams, error) {
+	limitStr := c.QueryParam("limit")
+	if limitStr == "" {
+		limitStr = "10"
 	}
 
-	limit, err := strconv.Atoi(limit_s)
+	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
 		return PagenationParams{}, err
 	}
 
-	page_s := c.QueryParam("page")
-	if page_s == "" {
-		page_s = "0"
+	pageStr := c.QueryParam("page")
+	if pageStr == "" {
+		pageStr = "0"
 	}
 
-	page, err := strconv.Atoi(page_s)
+	page, err := strconv.Atoi(pageStr)
 	if err != nil {
 		return PagenationParams{}, err
 	}
