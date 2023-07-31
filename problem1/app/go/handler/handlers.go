@@ -14,11 +14,14 @@ import (
 
 func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// id 取得
 		id, err := get_id(c)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, err)
 			return nil
 		}
+
+		// ユーザー情報取得用の設定
 		ur := infra.NewUserRepository()
 		txAdmin := usecases.NewTxAdmin(db)
 		us := usecases.NewUserService(txAdmin, ur)
@@ -27,8 +30,6 @@ func GetFriendListHandler(db *sql.DB) echo.HandlerFunc {
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)
 		}
-
-		// fmt.Println(filteredFriends)
 
 		friendNames := make([]string, 0)
 		for _, friend := range filteredFriends {
@@ -74,6 +75,7 @@ func GetFriendOfFriendListHandler(db *sql.DB) echo.HandlerFunc {
 
 func GetFriendOfFriendListPagingHandler(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// parameterを取得
 		id, err := get_id(c)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)
@@ -95,7 +97,6 @@ func GetFriendOfFriendListPagingHandler(db *sql.DB) echo.HandlerFunc {
 			return nil
 		}
 
-		// get friend of friend list pagenated
 		fof, err := us.GetFriendListFromUsers(friendList)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err)

@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"problem1/domain"
 	"problem1/usecases"
 )
@@ -101,26 +100,17 @@ func (ur *UserRepositoryImpl) GetByID(user_id int, db domain.QueryerTx) (domain.
 		row := tx.QueryRow(query, user_id)
 
 		if err := row.Scan(&user.ID, &user.UserID, &user.Name); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return sql.ErrNoRows
-			}
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
 
 		friendIDs, err := ur.getFriendsByID(user_id, tx)
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				user.FriendList = nil
-			}
 			return fmt.Errorf("failed to get friends: %w", err)
 		}
 		user.FriendList = friendIDs
 
 		blockedIDs, err := ur.getBlockUsersByID(user_id, tx)
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				user.BlockList = nil
-			}
 			return fmt.Errorf("failed to get blocked users: %w", err)
 		}
 		user.BlockList = blockedIDs
@@ -128,19 +118,9 @@ func (ur *UserRepositoryImpl) GetByID(user_id int, db domain.QueryerTx) (domain.
 		return nil
 	}
 
-	log.Println("start transaction")
-
 	if err := db.Transaction(queryFuncs); err != nil {
 		return domain.User{}, fmt.Errorf("failed to transaction: %w", err)
 	}
 
 	return user, nil
 }
-
-/*func replacePlaceholders(query string, argCount int) string {
-	placeholders := make([]string, argCount)
-	for i := 0; i < argCount; i++ {
-		placeholders[i] = "?"
-	}
-	return strings.Replace(query, "?", strings.Join(placeholders, ","), -1)
-}*/

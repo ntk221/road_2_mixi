@@ -40,6 +40,7 @@ func (ta *txAdmin) QueryRow(query string, args ...interface{}) *sql.Row {
 
 // Transaction for test
 func (ta *txAdmin) Transaction(update func(tx *sql.Tx) (err error)) error {
+	// testの中で，一番最初に呼ばれた時だけトランザクションを貼る
 	if ta.Tx == nil {
 		tx, err := ta.DB.Begin()
 		if err != nil {

@@ -116,14 +116,14 @@ func (h *Handler) GetFriendOfFriendListHandler() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusInternalServerError, "サーバーで問題が発生しました")
 		}
 
-		friend_of_friends, err := us.GetFriendListFromUsers(friendList, hop)
+		friendOfFriends, err := us.GetFriendListFromUsers(friendList, hop)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "サーバーで問題が発生しました")
 		}
 
-		friend_of_friends = pagenate(params, friend_of_friends)
+		friendOfFriends = pagenate(params, friendOfFriends)
 
-		filteredNames := friend_of_friends.GetUserNames()
+		filteredNames := friendOfFriends.GetUserNames()
 		if err != nil {
 			echo.NewHTTPError(http.StatusInternalServerError, "サーバーで問題が発生しました")
 		}
