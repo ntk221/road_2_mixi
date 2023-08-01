@@ -1,34 +1,31 @@
 package usecases
 
 import (
+	"log"
 	"problem1/domain/entity"
 	"problem1/domain/repository"
 	"problem1/domain/valueObject"
-	"problem1/infra"
-
-	"log"
 )
 
 type UserService interface {
-	GetFriendList(user_id valueObject.UserID) (*entity.UserCollection, error)
+	GetFriendList(userId valueObject.UserID) (*entity.UserCollection, error)
 	GetFriendListFromUsers(*entity.UserCollection, int) (*entity.UserCollection, error)
-	GetUserByID(user_id valueObject.UserID) (*entity.User, error)
+	GetUserByID(userId valueObject.UserID) (*entity.User, error)
 }
 
 type UserServiceImpl struct {
 	db repository.Database
-	// ur UserRepository
+	ur repository.UserRepository
 }
 
-func NewUserService(db repository.Database) UserService {
+func NewUserService(db repository.Database, ur repository.UserRepository) UserService {
 	return &UserServiceImpl{
 		db: db,
-		// ur: ur,
+		ur: ur,
 	}
 }
 
 func (us UserServiceImpl) GetUserByID(userID valueObject.UserID) (*entity.User, error) {
-	ur := infra.NewUserRepository()
 	tx, err := us.db.Begin()
 	if err != nil {
 		return nil, err
@@ -41,7 +38,7 @@ func (us UserServiceImpl) GetUserByID(userID valueObject.UserID) (*entity.User, 
 		}
 	}()
 
-	user, err := ur.GetByID(userID, tx)
+	user, err := us.ur.GetByID(userID, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -55,23 +52,23 @@ func (us UserServiceImpl) GetUserByID(userID valueObject.UserID) (*entity.User, 
 	return user, nil
 }
 
+// GetFriendList
 // id に対応するユーザーの友達のユーザー情報を取得する
 // ユーザー情報はuniqueにする
 func (us UserServiceImpl) GetFriendList(userID valueObject.UserID) (*entity.UserCollection, error) {
-	ur := infra.NewUserRepository()
 	tx, err := us.db.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
-		if r := recover(); r != nil {
+		if r := recover(); r != nil { //panicが発生していた場合はRollback
 			tx.Rollback()
-		} else if err != nil {
+		} else if err != nil { // errが発生していた場合もロールバック
 			tx.Rollback()
 		}
 	}()
 
-	user, err := ur.GetByID(userID, tx)
+	user, err := us.ur.GetByID(userID, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -91,6 +88,7 @@ func (us UserServiceImpl) GetFriendList(userID valueObject.UserID) (*entity.User
 	return friends, nil
 }
 
+// GetFriendListFromUsers
 // depth の分だけ再帰呼び出しを行う
 // そのたびにforループを呼び出している
 // これは，depthが大きくなると，再帰呼び出しの回数が増えるため，効率が悪い

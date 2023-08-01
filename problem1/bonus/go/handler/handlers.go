@@ -47,7 +47,8 @@ func (h *Handler) GetUserHandler() echo.HandlerFunc {
 		}
 
 		// ユーザー情報取得用の設定
-		uc := usecases.NewUserService(h.db)
+		ur := infra.NewUserRepository()
+		uc := usecases.NewUserService(h.db, ur)
 
 		userID := valueObject.NewUserID(id)
 		user, err := uc.GetUserByID(userID)
@@ -71,7 +72,8 @@ func (h *Handler) GetFriendListHandler() echo.HandlerFunc {
 		}
 
 		// ユーザー情報取得用の設定
-		us := usecases.NewUserService(h.db)
+		ur := infra.NewUserRepository()
+		us := usecases.NewUserService(h.db, ur)
 
 		userID := valueObject.NewUserID(id)
 		friends, err := us.GetFriendList(userID)
@@ -108,7 +110,8 @@ func (h *Handler) GetFriendOfFriendListHandler() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusInternalServerError, "TODO")
 		}
 
-		us := usecases.NewUserService(h.db)
+		ur := infra.NewUserRepository()
+		us := usecases.NewUserService(h.db, ur)
 
 		userID := valueObject.NewUserID(id)
 		friendList, err := us.GetFriendList(userID)

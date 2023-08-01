@@ -11,5 +11,5 @@ type UserRepository interface {
 }
 
 type UserGetter interface {
-	GetByID(id valueObject.UserID, db Queryer) (entity.User, error)
+	GetByID(userId valueObject.UserID, db Queryer) (*entity.User, error)
 }
